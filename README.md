@@ -1,131 +1,72 @@
-# GymLog — Workout Tracker
+# GymLog 2.0
 
-> **Track every lift. Beat every session.**
-
-GymLog is a zero-dependency, single-file Progressive Web App (PWA) for tracking gym workouts and body measurements. It runs entirely in the browser with no server, no account, and no internet connection required after the first load — all data lives in `localStorage`.
-
-**Live:** [gymlog7.netlify.app](https://gymlog7.netlify.app/)
-
----
+A single-page Progressive Web App (PWA) for tracking gym workouts, now upgraded with **Supabase** for secure cloud synchronization, authentication, and persistent storage across devices.
 
 ## Features
 
-### Workout Logging
-- Create named **workout days** (e.g. Push, Pull, Legs)
-- Add **exercises** to each day with custom sets
-- Log **weight × reps** per set with inline editing
-- Rename or delete days and exercises at any time
-
-### Progress Charts
-- Per-exercise **progression charts** powered by [Chart.js](https://www.chartjs.org/)
-- Filter history by **month and year**
-- Chronological history view beneath each chart
-
-### Body Measurements
-- Create custom **measurement types** (e.g. Weight, Waist, Arms)
-- Log entries with a **value and unit** (kg, cm, lbs, %, inch, etc.)
-- View a dedicated **progress chart** per measurement type
-- Month/year filtering on measurement charts
-
-### PWA — Installable on Mobile
-- Add to Home Screen on iOS and Android for a native app feel
-- Standalone display mode, portrait orientation locked
-- Status bar and splash screen configured for iOS (`apple-mobile-web-app-capable`)
-- `manifest.json` with 192 × 512 icons included
-
-### Light / Dark Theme
-- Dark mode by default (`#0a0a0a` background)
-- One-tap toggle persisted across sessions
-- Fully themed via CSS custom properties — no flash on load
-
-### Browser Navigation
-- Full `history.pushState` / `popstate` support — the browser back button works correctly between pages
-- Deep-linkable via Netlify redirects (`_redirects`) — all routes fall back to `index.html`
+- **User Authentication**: Secure email & password login via Supabase Auth.
+- **Cloud Database**: PostgreSQL database with Row-Level Security (RLS) ensures users can only access their own data.
+- **Offline-First Logging**: During a workout, sets are logged locally. You only need to be online when clicking "Save Workout to History" or navigating pages.
+- **Progress Tracking**: Automatic volume and max weight charting using Chart.js.
+- **Body Measurements**: Track bodyweight, body fat %, and other metrics over time.
+- **PWA Ready**: Can be installed to the home screen on iOS and Android.
+- **Zero Build Tools**: No React, no Node.js, no Webpack. Built entirely with vanilla HTML, CSS, and ES Modules.
 
 ---
 
-## Tech Stack
+## Setup Instructions
 
-| Concern | Solution |
-|---|---|
-| Framework | None — vanilla HTML, CSS, JS |
-| Charts | [Chart.js](https://cdn.jsdelivr.net/npm/chart.js) via CDN |
-| Fonts | [Bebas Neue](https://fonts.google.com/specimen/Bebas+Neue) (display) + [DM Sans](https://fonts.google.com/specimen/DM+Sans) (body) via Google Fonts |
-| Storage | `localStorage` (no backend) |
-| Deployment | [Netlify](https://www.netlify.com/) |
-| PWA | `manifest.json` + `<meta>` tags |
+### 1. Supabase Setup
 
----
+1. Create a new project at [Supabase](https://supabase.com/).
+2. Go to the **SQL Editor** in your Supabase dashboard.
+3. Copy the entire contents of `supabase-setup.sql` and run it. This will automatically create all tables, indexes, and RLS policies.
+4. Optional: Under **Authentication > Providers > Email**, you may want to disable "Confirm email" during testing to make signup instant.
 
-## Project Structure
+### 2. Connect the App
 
-```
-├── index.html          # Entire app — markup, styles, and JS in one file
-├── manifest.json       # PWA manifest (name, icons, display mode)
-├── _redirects          # SPA redirect rule for Netlify deployment
-├── icon-192.png        # PWA icon (192×192)
-├── icon-512.png        # PWA icon (512×512)
-└── refactor.py         # One-off migration script (Templates → Measurements)
+1. Rename `.env.example` to `js/config.js` (or just create `js/config.js`).
+2. Add your project credentials from **Project Settings > API**:
+
+```javascript
+// js/config.js
+export const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+export const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE';
 ```
 
----
+*(Note: `js/config.js` is automatically ignored by Git so your credentials stay safe).*
 
-## Getting Started
+### 3. Run Locally
 
-No build step required.
+Because the app uses ES Modules (`<script type="module">`), you cannot simply open `index.html` from the file system. You must run a local web server:
 
 ```bash
-# Clone the repo
-git clone https://github.com/your-username/gymlog.git
-cd gymlog
-
-# Open directly in a browser
-open index.html
-
-# Or serve locally (e.g. with Python)
+# Using Python
 python3 -m http.server 3000
-```
 
+# OR using Node.js
+npx serve
+```
 Then visit `http://localhost:3000`.
 
 ---
 
+## Architecture & Code Structure
+
+The app is broken down into the following vanilla JS modules:
+
+- `index.html` - The static UI shell and modals.
+- `styles.css` - All styling, using native CSS variables for themeing.
+- `js/app.js` - The main entry point, router, and event orchestrator.
+- `js/auth.js` - Handles Supabase authentication state.
+- `js/db.js` - All Supabase database queries and mutations.
+- `js/cache.js` - In-memory and localStorage cache for instant UI rendering.
+- `js/ui.js` - DOM manipulation and data rendering.
+- `js/charts.js` - Chart.js integrations.
+
 ## Deployment
 
-The app is deployed on **Netlify**. Push to a connected GitHub repo and Netlify will deploy automatically. The `_redirects` file rewrites all paths to `index.html` so navigation works correctly on refresh or direct URL access.
+You can deploy this instantly to **Vercel**, **Netlify**, or **Cloudflare Pages** because it is just static files.
+A `vercel.json` is included to handle single-page app routing (rewriting all paths to `index.html`).
 
-```text
-/* /index.html 200
-```
-
----
-
-## Data Storage
-
-All data is stored in the browser's `localStorage` under a single key as a JSON object with the following shape:
-
-```json
-{
-  "days": [...],
-  "measurements": [...]
-}
-```
-
-**No data is ever sent to a server.** Clearing browser storage or uninstalling the PWA will erase all data. Consider exporting/backing up data manually if needed (export feature not yet implemented).
-
----
-
-## Roadmap / Known Limitations
-
-- [ ] Data export / import (JSON or CSV)
-- [ ] Workout templates / reusable day blueprints
-- [ ] Rest timer
-- [ ] Unit preference (kg vs lbs) — currently per-entry
-- [ ] Cloud sync / account support
-- [ ] No offline caching via Service Worker yet (fonts and Chart.js require internet on first load)
-
----
-
-## License
-
-MIT
+Remember to include your `js/config.js` file if deploying via a ZIP upload, or inject the credentials if building via CI/CD.

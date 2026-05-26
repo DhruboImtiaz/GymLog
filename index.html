@@ -15,1209 +15,446 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-:root {
-  --bg:#0a0a0a; --bg2:#111111; --bg3:#1c1c1c; --bg4:#242424;
-  --border:#2a2a2a; --border2:#383838;
-  --text:#f0f0f0; --text2:#aaaaaa; --text3:#555555;
-  --accent:#ff6b35; --accent2:#ff8c5a; --adim:rgba(255,107,53,0.13);
-  --green:#4ade80; --gdim:rgba(74,222,128,0.12);
-  --red:#f87171; --rdim:rgba(248,113,113,0.13);
-  --blue:#60a5fa; --bdim:rgba(96,165,250,0.13);
-  --r:14px; --r2:10px; --r3:7px;
-  --sh:0 4px 20px rgba(0,0,0,0.5); --sh2:0 2px 8px rgba(0,0,0,0.35);
-  --fd:'Bebas Neue',sans-serif; --fb:'DM Sans',sans-serif;
-  --safe-top:env(safe-area-inset-top,0px);
-  --safe-bot:env(safe-area-inset-bottom,0px);
-}
-[data-theme="light"] {
-  --bg:#f2f2f2; --bg2:#ffffff; --bg3:#ebebeb; --bg4:#e2e2e2;
-  --border:#d4d4d4; --border2:#c0c0c0;
-  --text:#111111; --text2:#555555; --text3:#999999;
-  --sh:0 4px 20px rgba(0,0,0,0.07); --sh2:0 2px 8px rgba(0,0,0,0.05);
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html{font-size:16px;}
-body{
-  font-family:var(--fb);background:var(--bg);color:var(--text);
-  min-height:100vh;min-height:100dvh;
-  -webkit-font-smoothing:antialiased;overscroll-behavior:none;
-}
-a{color:var(--accent);text-decoration:none;}
-button{font-family:var(--fb);cursor:pointer;border:none;background:none;color:inherit;}
-input,textarea{font-family:var(--fb);}
-
-/* PAGES */
-.page{display:none;min-height:100dvh;padding-bottom:calc(72px + var(--safe-bot));}
-.page.active{display:block;}
-
-/* NAVBAR */
-.navbar{
-  position:sticky;top:0;z-index:200;
-  background:rgba(10,10,10,0.93);
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-  border-bottom:1px solid var(--border);
-  height:54px;display:flex;align-items:center;justify-content:space-between;
-  padding:0 1rem;padding-top:var(--safe-top);
-}
-[data-theme="light"] .navbar{background:rgba(242,242,242,0.93);}
-.nav-brand{font-family:var(--fd);font-size:1.6rem;letter-spacing:3px;color:var(--accent);cursor:pointer;}
-.nav-right{display:flex;align-items:center;gap:0.5rem;}
-.theme-btn{
-  background:var(--bg3);border:1px solid var(--border2);border-radius:20px;
-  padding:0 0.8rem;height:32px;font-size:0.75rem;font-weight:700;
-  color:var(--text);letter-spacing:0.5px;transition:all 0.2s;
-}
-.theme-btn:hover{border-color:var(--accent);color:var(--accent);}
-
-/* BOTTOM NAV */
-.bottom-nav{
-  position:fixed;bottom:0;left:0;right:0;z-index:200;
-  background:rgba(10,10,10,0.96);
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-  border-top:1px solid var(--border);
-  display:flex;padding-bottom:var(--safe-bot);
-}
-[data-theme="light"] .bottom-nav{background:rgba(242,242,242,0.96);}
-.bnav-item{
-  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;cursor:pointer;color:var(--text3);
-  font-size:0.62rem;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;
-  transition:color 0.2s;padding:10px 0 calc(10px);border:none;background:none;
-}
-.bnav-item.active{color:var(--accent);}
-.bnav-svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-
-/* CONTENT */
-.content{max-width:600px;margin:0 auto;padding:1.25rem 1rem;}
-
-/* PAGE HEADER */
-.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;margin-bottom:1.25rem;}
-.page-header-left{display:flex;flex-direction:column;gap:0.2rem;}
-.back-btn{
-  display:inline-flex;align-items:center;gap:0.25rem;
-  font-size:0.85rem;font-weight:500;color:var(--text2);
-  cursor:pointer;border:none;background:none;padding:0;margin-bottom:0.15rem;transition:color 0.2s;
-}
-.back-btn:active{color:var(--accent);}
-.page-title{font-family:var(--fd);font-size:1.9rem;letter-spacing:1px;line-height:1.1;color:var(--text);}
-.page-sub{font-size:0.875rem;color:var(--text2);margin-top:0.1rem;}
-
-/* BUTTONS */
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:0.4rem;
-  padding:0 1.1rem;height:44px;border-radius:var(--r2);
-  font-size:0.9rem;font-weight:600;cursor:pointer;border:none;
-  transition:all 0.15s;white-space:nowrap;-webkit-appearance:none;
-}
-.btn:active{transform:scale(0.96);}
-.btn-primary{background:var(--accent);color:#fff;}
-.btn-primary:active{background:var(--accent2);}
-.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border2);}
-.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
-.btn-ghost:active{background:var(--bg3);}
-.btn-danger{background:var(--rdim);color:var(--red);border:1px solid var(--red);}
-.btn-success{background:var(--green);color:#000;font-weight:700;}
-.btn-full{width:100%;}
-.btn-lg{height:52px;font-size:1rem;}
-.btn-sm{height:36px;font-size:0.8rem;padding:0 0.8rem;}
-.btn-xs{height:30px;font-size:0.75rem;padding:0 0.6rem;border-radius:var(--r3);}
-.icon-btn{
-  height:36px;padding:0 0.7rem;border-radius:var(--r3);
-  display:inline-flex;align-items:center;justify-content:center;
-  font-size:0.75rem;font-weight:700;
-  background:var(--bg3);color:var(--text);border:1px solid var(--border2);
-  cursor:pointer;transition:all 0.15s;flex-shrink:0;white-space:nowrap;
-}
-.icon-btn:active{transform:scale(0.94);}
-.icon-btn.del{color:var(--red);}
-.icon-btn.del:active{background:var(--rdim);border-color:var(--red);}
-.icon-btn.edit{color:var(--blue);}
-.icon-btn.edit:active{background:var(--bdim);border-color:var(--blue);}
-
-/* CARDS */
-.card{
-  background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--r);box-shadow:var(--sh2);
-  margin-bottom:0.65rem;overflow:hidden;transition:border-color 0.2s;
-}
-.card-row{display:flex;align-items:center;gap:0.75rem;padding:0.9rem 1rem;}
-.card-clickable{cursor:pointer;}
-.card-clickable:active{background:var(--bg3);}
-.card-icon{
-  width:40px;height:40px;border-radius:var(--r3);
-  background:var(--adim);display:flex;align-items:center;justify-content:center;
-  font-size:0.85rem;font-weight:800;color:var(--accent);
-  font-family:var(--fd);letter-spacing:1px;flex-shrink:0;
-}
-.card-body{flex:1;min-width:0;}
-.card-title{font-weight:600;font-size:0.95rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.card-meta{font-size:0.78rem;color:var(--text2);margin-top:2px;}
-.card-chevron{color:var(--text3);font-size:1.2rem;flex-shrink:0;}
-.card-actions{display:flex;align-items:center;gap:0.5rem;padding:0.5rem 1rem 0.75rem;border-top:1px solid var(--border);}
-
-/* FORMS */
-.form-group{margin-bottom:1rem;}
-.form-label{display:block;font-size:0.73rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:0.4rem;}
-.form-input{
-  width:100%;background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--r2);
-  color:var(--text);padding:0 0.9rem;height:48px;font-size:1rem;
-  transition:border-color 0.2s;-webkit-appearance:none;outline:none;
-}
-.form-input:focus{border-color:var(--accent);}
-.form-input::placeholder{color:var(--text3);}
-textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
-
-/* MODAL */
-.modal-overlay{
-  display:none;position:fixed;inset:0;z-index:500;
-  background:rgba(0,0,0,0.65);
-  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
-  align-items:flex-end;justify-content:center;
-}
-.modal-overlay.open{display:flex;}
-.modal-box{
-  background:var(--bg2);border:1px solid var(--border2);
-  border-radius:var(--r) var(--r) 0 0;
-  width:100%;max-width:560px;
-  padding:1.25rem 1.25rem calc(1.5rem + var(--safe-bot));
-  animation:slideUp 0.22s cubic-bezier(0.34,1.4,0.64,1);
-  max-height:90dvh;overflow-y:auto;
-}
-@keyframes slideUp{from{transform:translateY(60px);opacity:0;}to{transform:translateY(0);opacity:1;}}
-.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;}
-.modal-title{font-family:var(--fd);font-size:1.4rem;letter-spacing:0.5px;color:var(--text);}
-.modal-close{
-  width:32px;height:32px;border-radius:50%;
-  background:var(--bg3);border:1px solid var(--border2);
-  font-size:1.1rem;color:var(--text2);
-  display:flex;align-items:center;justify-content:center;cursor:pointer;
-}
-.modal-close:active{background:var(--rdim);color:var(--red);}
-.modal-actions{display:flex;gap:0.75rem;margin-top:1.1rem;}
-.modal-actions .btn{flex:1;}
-
-/* TOAST */
-#toast{
-  position:fixed;top:calc(62px + var(--safe-top));left:50%;
-  transform:translateX(-50%) translateY(-8px);
-  background:var(--bg3);border:1px solid var(--border2);
-  border-radius:var(--r2);padding:0.55rem 1.1rem;
-  font-size:0.85rem;font-weight:600;color:var(--text);
-  box-shadow:var(--sh);z-index:9999;
-  opacity:0;transition:all 0.25s;pointer-events:none;white-space:nowrap;
-}
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-#toast.success{border-color:var(--green);color:var(--green);}
-#toast.error{border-color:var(--red);color:var(--red);}
-
-/* CONFIRM */
-#confirmOverlay{
-  display:none;position:fixed;inset:0;z-index:600;
-  background:rgba(0,0,0,0.72);
-  align-items:center;justify-content:center;padding:1.25rem;
-}
-#confirmOverlay.open{display:flex;}
-#confirmBox{
-  background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);
-  padding:1.5rem;width:100%;max-width:320px;
-  animation:fadeScale 0.18s ease;
-}
-@keyframes fadeScale{from{opacity:0;transform:scale(0.94);}to{opacity:1;transform:scale(1);}}
-#confirmTitle{font-family:var(--fd);font-size:1.2rem;margin-bottom:0.5rem;color:var(--text);}
-#confirmMsg{font-size:0.9rem;color:var(--text2);margin-bottom:1.25rem;line-height:1.5;}
-#confirmActions{display:flex;gap:0.65rem;}
-#confirmActions .btn{flex:1;}
-
-/* EMPTY */
-.empty{text-align:center;padding:3rem 1rem;}
-.empty-title{font-family:var(--fd);font-size:1.7rem;letter-spacing:0.5px;margin-bottom:0.4rem;color:var(--text);}
-.empty-text{color:var(--text2);font-size:0.9rem;margin-bottom:1.5rem;line-height:1.5;}
-
-/* SECTION HEADER */
-.section-header{display:flex;align-items:center;justify-content:space-between;margin:1.2rem 0 0.6rem;}
-.section-title{font-family:var(--fd);font-size:1.15rem;letter-spacing:0.5px;color:var(--text);}
-.section-badge{font-size:0.72rem;font-weight:700;color:var(--text2);background:var(--bg3);border:1px solid var(--border);padding:0.15rem 0.55rem;border-radius:20px;}
-
-/* LAST SESSION */
-.last-card{background:var(--bdim);border:1px solid var(--blue);border-radius:var(--r);padding:0.9rem 1rem;margin-bottom:1rem;}
-.last-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.45rem;}
-.last-label{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--blue);}
-.last-date{font-size:0.8rem;color:var(--text2);}
-.last-row{display:flex;gap:0.75rem;font-size:0.875rem;padding:0.12rem 0;}
-.last-num{color:var(--text2);min-width:44px;font-weight:600;}
-.last-val{color:var(--text);}
-
-/* SETS */
-.sets-list{display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;}
-.set-row{
-  display:flex;align-items:center;gap:0.6rem;
-  background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--r2);padding:0.7rem 0.85rem;
-}
-.set-badge{
-  width:28px;height:28px;border-radius:50%;
-  background:var(--adim);color:var(--accent);
-  font-weight:700;font-size:0.8rem;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.set-info{flex:1;display:flex;align-items:center;gap:0.5rem;}
-.set-reps{font-weight:700;font-size:0.95rem;color:var(--text);}
-.set-sep{color:var(--text3);}
-.set-weight{font-weight:700;font-size:0.95rem;color:var(--accent);}
-.set-edit{display:none;flex:1;align-items:center;gap:0.4rem;flex-wrap:wrap;}
-.set-edit.open{display:flex;}
-.set-edit input{
-  width:58px;background:var(--bg3);border:1.5px solid var(--accent);
-  border-radius:var(--r3);color:var(--text);text-align:center;
-  padding:0.2rem;font-size:0.9rem;height:32px;outline:none;-webkit-appearance:none;
-}
-.set-edit span{font-size:0.8rem;color:var(--text2);}
-.set-act{display:flex;gap:0.35rem;}
-
-/* ADD SET */
-.add-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;margin-bottom:1rem;}
-.add-title{font-family:var(--fd);font-size:1.1rem;letter-spacing:0.5px;margin-bottom:0.85rem;color:var(--text);}
-.add-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.85rem;}
-.input-group{display:flex;flex-direction:column;gap:0.35rem;}
-.input-label{font-size:0.7rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.7px;}
-.num-input{
-  background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--r2);
-  color:var(--text);text-align:center;font-size:1.2rem;font-weight:700;
-  height:52px;width:100%;outline:none;-webkit-appearance:none;transition:border-color 0.2s;
-}
-.num-input:focus{border-color:var(--accent);}
-.quick-row{display:flex;gap:0.35rem;}
-.qbtn{
-  flex:1;height:32px;border-radius:var(--r3);
-  background:var(--bg3);border:1px solid var(--border2);
-  color:var(--text);font-size:0.75rem;font-weight:700;
-  cursor:pointer;transition:all 0.15s;
-}
-.qbtn:active{background:var(--adim);border-color:var(--accent);color:var(--accent);}
-
-/* PROGRESS */
-.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:0.9rem;}
-.chart-label{font-family:var(--fd);font-size:1rem;letter-spacing:0.5px;margin-bottom:0.85rem;color:var(--text);}
-.chart-wrap{position:relative;height:195px;}
-.hist-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:0.9rem 1rem;margin-bottom:0.65rem;}
-.hist-date{font-weight:700;font-size:0.85rem;color:var(--accent);margin-bottom:0.45rem;}
-.hist-row{display:flex;gap:0.75rem;font-size:0.875rem;padding:0.12rem 0;}
-.hist-num{color:var(--text2);min-width:44px;font-weight:600;}
-.hist-val{color:var(--text);}
-
-
-/* RESPONSIVE */
-@media(max-width:380px){
-  .page-title{font-size:1.6rem;}
-  .add-grid{grid-template-columns:1fr;}
-  .content{padding:1rem 0.85rem;}
-}
-@media(min-width:600px){
-  .content{padding:1.5rem 1.25rem;}
-}
-</style>
+<link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
+
+<!-- LOADING OVERLAY -->
+<div id="appLoader" class="app-loader">
+  <div class="loader-spinner"></div>
+</div>
+
+<!-- AUTH SCREEN -->
+<div id="pageAuth" class="auth-screen">
+  <!-- Login -->
+  <form id="authLogin" class="auth-panel active" onsubmit="handleLogin(event)">
+    <div class="auth-title">Welcome</div>
+    <div class="auth-subtitle">Sign in to your account</div>
+    
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" id="loginEmail" class="form-input" required/>
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">Password</label>
+      <input type="password" id="loginPass" class="form-input" required/>
+    </div>
+    
+    <button type="submit" id="btnLogin" class="btn btn-primary btn-lg" style="margin-top:0.5rem">Sign In</button>
+    
+    <div class="auth-sep">or</div>
+    <button type="button" class="btn btn-ghost" onclick="switchAuthTab('register')">Create an Account</button>
+  </form>
+
+  <!-- Register -->
+  <form id="authRegister" class="auth-panel" onsubmit="handleRegister(event)">
+    <div class="auth-title">Register</div>
+    <div class="auth-subtitle">Create a new GymLog account</div>
+    
+    <div class="form-group">
+      <label class="form-label">Full Name</label>
+      <input type="text" id="regFullName" class="form-input" placeholder="e.g. John Doe" required/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" id="regEmail" class="form-input" required/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input type="password" id="regPass" class="form-input" required minlength="6"/>
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">Confirm Password</label>
+      <input type="password" id="regPassConfirm" class="form-input" required minlength="6"/>
+    </div>
+    
+    <button type="submit" id="btnRegister" class="btn btn-primary btn-lg" style="margin-top:0.5rem">Register</button>
+    
+    <div class="auth-sep">or</div>
+    <button type="button" class="btn btn-ghost" onclick="switchAuthTab('login')">Back to Sign In</button>
+  </form>
+</div>
 
 <div id="toast"></div>
 
 <!-- CONFIRM DIALOG -->
-<div id="confirmOverlay">
-  <div id="confirmBox">
-    <div id="confirmTitle">Are you sure?</div>
-    <p id="confirmMsg"></p>
-    <div id="confirmActions">
-      <button class="btn btn-ghost" onclick="confirmResolve(false)">Cancel</button>
-      <button class="btn btn-danger" onclick="confirmResolve(true)">Delete</button>
+<div id="modalConfirm" class="modal-overlay" onclick="closeModal('modalConfirm')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Are you sure?</span>
+      <button class="modal-close" onclick="closeModal('modalConfirm')">&#215;</button>
+    </div>
+    <p id="confirmText" style="color:var(--text2);font-size:0.95rem;margin-bottom:1.5rem;line-height:1.4;"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalConfirm')">Cancel</button>
+      <button class="btn btn-danger" id="confirmYesBtn">Yes, do it</button>
     </div>
   </div>
 </div>
 
 <!-- PAGE: DASHBOARD -->
-<div id="pageDashboard" class="page active">
+<div id="pageDashboard" class="app-page page active">
   <nav class="navbar">
-    <span class="nav-brand" onclick="goTo('dashboard')">GYMLOG</span>
+    <span class="nav-brand" onclick="goDash()">GYMLOG</span>
     <div class="nav-right">
-      <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">Light</button>
+      <span class="nav-email"></span>
+      <button class="theme-btn" onclick="toggleTheme()">Light</button>
+      <button class="logout-btn" onclick="handleLogout()" title="Logout">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      </button>
     </div>
   </nav>
   <div class="content">
     <div class="page-header">
       <div class="page-header-left">
         <div class="page-title">My Workouts</div>
-        <div class="page-sub" id="dashGreet"></div>
+        <div class="page-sub">Select a day to train</div>
       </div>
-      <button class="btn btn-primary" onclick="openModal('modalCreateDay')">+ New Day</button>
+      <button class="btn btn-primary" onclick="openNewDay()">+ New Day</button>
     </div>
-    <div id="daysList"></div>
+    <div id="dashList"></div>
   </div>
 </div>
 
 <!-- PAGE: WORKOUT DAY -->
-<div id="pageDay" class="page">
+<div id="pageDay" class="app-page page">
   <nav class="navbar">
-    <span class="nav-brand" onclick="goTo('dashboard')">GYMLOG</span>
+    <span class="nav-brand" onclick="goDash()">GYMLOG</span>
     <div class="nav-right">
-      <button class="theme-btn" onclick="toggleTheme()" id="themeBtnDay">Light</button>
+      <span class="nav-email"></span>
+      <button class="theme-btn" onclick="toggleTheme()">Light</button>
+      <button class="logout-btn" onclick="handleLogout()" title="Logout">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      </button>
     </div>
   </nav>
   <div class="content">
     <div class="page-header">
       <div class="page-header-left">
-        <button class="back-btn" onclick="goTo('dashboard')">&#8249; Back</button>
+        <button class="back-btn" onclick="goDash()">&#8249; Back</button>
         <div class="page-title" id="dayTitle">Day</div>
       </div>
-      <button class="btn btn-primary" onclick="openModal('modalAddExercise')">+ Exercise</button>
+      <div style="display:flex;gap:0.5rem">
+        <button class="btn btn-secondary btn-sm" onclick="openEditDay()">Edit</button>
+        <button class="btn btn-primary btn-sm" onclick="openNewEx()">+ Exercise</button>
+      </div>
     </div>
-    <div id="exercisesList"></div>
+    <div id="dayExList"></div>
   </div>
 </div>
 
 <!-- PAGE: EXERCISE -->
-<div id="pageExercise" class="page">
+<div id="pageEx" class="app-page page">
   <nav class="navbar">
-    <span class="nav-brand" onclick="goTo('dashboard')">GYMLOG</span>
+    <span class="nav-brand" onclick="goDash()">GYMLOG</span>
     <div class="nav-right">
-      <button class="theme-btn" onclick="toggleTheme()" id="themeBtnEx">Light</button>
+      <span class="nav-email"></span>
+      <button class="theme-btn" onclick="toggleTheme()">Light</button>
+      <button class="logout-btn" onclick="handleLogout()" title="Logout">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      </button>
     </div>
   </nav>
   <div class="content">
     <div class="page-header">
       <div class="page-header-left">
-        <button class="back-btn" onclick="goTo('day')" id="exBack">&#8249; Back</button>
+        <button class="back-btn" onclick="goDay()">&#8249; Back</button>
         <div class="page-title" id="exTitle">Exercise</div>
       </div>
-      <button class="btn btn-secondary btn-sm" onclick="goTo('progress')">Progress</button>
-    </div>
-    <div id="lastSessionCard"></div>
-    <div class="section-header">
-      <span class="section-title">Today's Sets</span>
-      <span class="section-badge" id="setBadge">0 sets</span>
-    </div>
-    <div id="setsList" class="sets-list"></div>
-    <p id="noSets" style="color:var(--text2);font-size:0.875rem;text-align:center;padding:0.75rem 0 1rem;display:none;">No sets yet — log one below.</p>
-    <div class="add-card">
-      <div class="add-title">Log a Set</div>
-      <div class="add-grid">
-        <div class="input-group">
-          <label class="input-label">Reps</label>
-          <input type="number" id="inReps" class="num-input" placeholder="10" min="1" max="999" inputmode="numeric"/>
-          <div class="quick-row">
-            <button class="qbtn" onclick="adj('inReps',1)">+1</button>
-            <button class="qbtn" onclick="adj('inReps',-1)">−1</button>
-          </div>
-        </div>
-        <div class="input-group">
-          <label class="input-label">Weight (kg)</label>
-          <input type="number" id="inWeight" class="num-input" placeholder="50" min="0" max="9999" step="0.5" inputmode="decimal"/>
-          <div class="quick-row">
-            <button class="qbtn" onclick="adj('inWeight',2.5)">+2.5</button>
-            <button class="qbtn" onclick="adj('inWeight',5)">+5</button>
-            <button class="qbtn" onclick="adj('inWeight',-2.5)">−2.5</button>
-          </div>
-        </div>
+      <div style="display:flex;gap:0.5rem">
+        <button class="icon-btn edit" onclick="openEditEx()">✎</button>
+        <button class="btn btn-secondary btn-sm" onclick="goTo('pageProg')">Charts</button>
       </div>
-      <button class="btn btn-primary btn-full" onclick="addSet()">Log Set</button>
     </div>
-    <div id="saveSection" style="display:none;margin-bottom:1rem;">
-      <button class="btn btn-success btn-full btn-lg" onclick="saveSession()">Save Workout to History</button>
+    
+    <div class="section-header">
+      <span class="section-title">Today's Session</span>
     </div>
+    <div id="curSetList" class="sets-list"></div>
+    <button class="btn btn-secondary btn-full" style="margin-bottom:1.5rem" onclick="openNewSet()">+ Log Set</button>
+    <button id="btnFinishWorkout" class="btn btn-success btn-full btn-lg" style="margin-bottom:2.5rem" onclick="finishWorkout()">Save Workout to History</button>
+
+    <div class="section-header">
+      <span class="section-title">History</span>
+    </div>
+    <div id="histList"></div>
   </div>
 </div>
 
 <!-- PAGE: PROGRESS -->
-<div id="pageProgress" class="page">
+<div id="pageProg" class="app-page page">
   <nav class="navbar">
-    <span class="nav-brand" onclick="goTo('dashboard')">GYMLOG</span>
+    <span class="nav-brand" onclick="goDash()">GYMLOG</span>
     <div class="nav-right">
-      <button class="theme-btn" onclick="toggleTheme()" id="themeBtnProg">Light</button>
+      <span class="nav-email"></span>
+      <button class="theme-btn" onclick="toggleTheme()">Light</button>
+      <button class="logout-btn" onclick="handleLogout()" title="Logout">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      </button>
     </div>
   </nav>
   <div class="content">
     <div class="page-header">
       <div class="page-header-left">
-        <button class="back-btn" onclick="goTo('exercise')">&#8249; Back</button>
+        <button class="back-btn" onclick="goEx()">&#8249; Back</button>
         <div class="page-title" id="progTitle">Progress</div>
       </div>
     </div>
-    <div id="progContent"></div>
+    <div class="chart-card">
+      <div class="chart-wrap">
+        <canvas id="chartProgress"></canvas>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- PAGE: MEASUREMENTS -->
-<div id="pageMeasurements" class="page">
+<div id="pageMeasurements" class="app-page page">
   <nav class="navbar">
-    <span class="nav-brand" onclick="goTo('dashboard')">GYMLOG</span>
+    <span class="nav-brand" onclick="goDash()">GYMLOG</span>
     <div class="nav-right">
-      <button class="theme-btn" onclick="toggleTheme()" id="themeBtnMeas">Light</button>
+      <span class="nav-email"></span>
+      <button class="theme-btn" onclick="toggleTheme()">Light</button>
+      <button class="logout-btn" onclick="handleLogout()" title="Logout">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      </button>
     </div>
   </nav>
   <div class="content">
     <div class="page-header">
       <div class="page-header-left">
         <div class="page-title">Measurements</div>
-        <div class="page-sub">Track your body metrics</div>
+        <div class="page-sub">Track body metrics</div>
       </div>
-      <button class="btn btn-primary" onclick="openModal('modalCreateMeasurement')">+ New</button>
+      <button class="btn btn-primary" onclick="openNewMeas()">+ New</button>
     </div>
-    <div id="measurementsList"></div>
+    <div id="measList"></div>
   </div>
 </div>
 
 <!-- PAGE: MEASUREMENT DETAIL -->
-<div id="pageMeasurementDetail" class="page">
+<div id="pageMeasDetail" class="app-page page">
   <nav class="navbar">
-    <span class="nav-brand" onclick="goTo('dashboard')">GYMLOG</span>
+    <span class="nav-brand" onclick="goDash()">GYMLOG</span>
     <div class="nav-right">
-      <button class="theme-btn" onclick="toggleTheme()" id="themeBtnMeasDet">Light</button>
+      <span class="nav-email"></span>
+      <button class="theme-btn" onclick="toggleTheme()">Light</button>
+      <button class="logout-btn" onclick="handleLogout()" title="Logout">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      </button>
     </div>
   </nav>
   <div class="content">
     <div class="page-header">
       <div class="page-header-left">
-        <button class="back-btn" onclick="goTo('measurements')">&#8249; Back</button>
+        <button class="back-btn" onclick="goMeas()">&#8249; Back</button>
         <div class="page-title" id="measTitle">Measurement</div>
       </div>
-      <button class="btn btn-secondary btn-sm" onclick="goTo('measurementProgress')">Progress</button>
+      <button class="icon-btn edit" onclick="openEditMeas()">✎</button>
     </div>
+    
+    <div class="chart-card">
+      <div class="chart-wrap">
+        <canvas id="chartMeasProgress"></canvas>
+      </div>
+    </div>
+    
     <div class="section-header">
       <span class="section-title">Entries</span>
-      <span class="section-badge" id="measBadge">0 entries</span>
+      <button class="btn btn-secondary btn-sm" onclick="openNewMeasEntry()">+ Log</button>
     </div>
-    <div id="measEntriesList" class="sets-list"></div>
-    <p id="noMeasEntries" style="color:var(--text2);font-size:0.875rem;text-align:center;padding:0.75rem 0 1rem;display:none;">No entries yet — log one below.</p>
-    <div class="add-card">
-      <div class="add-title">Log a Measurement</div>
-      <div class="add-grid">
-        <div class="input-group">
-          <label class="input-label">Value</label>
-          <input type="number" id="inMeasValue" class="num-input" placeholder="0" step="0.1" inputmode="decimal"/>
-          <div class="quick-row">
-            <button class="qbtn" onclick="adj('inMeasValue',0.5)">+0.5</button>
-            <button class="qbtn" onclick="adj('inMeasValue',1)">+1.0</button>
-            <button class="qbtn" onclick="adj('inMeasValue',-0.5)">−0.5</button>
-          </div>
-        </div>
-        <div class="input-group">
-          <label class="input-label">Unit</label>
-          <select id="inMeasUnit" class="num-input" style="padding:0">
-            <option value="cm">cm</option>
-            <option value="in">inch</option>
-            <option value="kg">kg</option>
-            <option value="lbs">lbs</option>
-            <option value="%">%</option>
-          </select>
-        </div>
-      </div>
-      <button class="btn btn-primary btn-full" onclick="addMeasurementEntry()">Log Entry</button>
-    </div>
-  </div>
-</div>
-
-<!-- PAGE: MEASUREMENT PROGRESS -->
-<div id="pageMeasurementProgress" class="page">
-  <nav class="navbar">
-    <span class="nav-brand" onclick="goTo('dashboard')">GYMLOG</span>
-    <div class="nav-right">
-      <button class="theme-btn" onclick="toggleTheme()" id="themeBtnMeasProg">Light</button>
-    </div>
-  </nav>
-  <div class="content">
-    <div class="page-header">
-      <div class="page-header-left">
-        <button class="back-btn" onclick="goTo('measurementDetail')">&#8249; Back</button>
-        <div class="page-title" id="measProgTitle">Progress</div>
-      </div>
-    </div>
-    <div id="measProgContent"></div>
+    <div id="measEntryList" class="sets-list"></div>
   </div>
 </div>
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottomNav">
-  <button class="bnav-item active" id="bnav-w" onclick="goTo('dashboard')">
+  <button class="bnav-item active" id="bnav-w" onclick="goTo('pageDashboard')">
     <svg class="bnav-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     Workouts
   </button>
-  <button class="bnav-item" id="bnav-m" onclick="goTo('measurements')">
+  <button class="bnav-item" id="bnav-m" onclick="goTo('pageMeasurements')">
     <svg class="bnav-svg" viewBox="0 0 24 24"><rect x="18" y="5" width="4" height="14" rx="1"/><rect x="10" y="11" width="4" height="8" rx="1"/><rect x="2" y="15" width="4" height="4" rx="1"/></svg>
     Measurements
   </button>
 </nav>
 
 <!-- MODALS -->
-<div class="modal-overlay" id="modalCreateDay" onclick="bgClose(event,'modalCreateDay')">
-  <div class="modal-box">
+
+<!-- New Day -->
+<div class="modal-overlay modal" id="modalNewDay">
+  <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
       <span class="modal-title">New Workout Day</span>
-      <button class="modal-close" onclick="closeModal('modalCreateDay')">&#215;</button>
+      <button class="modal-close" onclick="closeModal('modalNewDay')">&#215;</button>
     </div>
     <div class="form-group">
       <label class="form-label">Day Name</label>
-      <input type="text" id="inDayName" class="form-input" placeholder="e.g. Push Day, Leg Day..."/>
+      <input type="text" id="inpNewDay" class="form-input" placeholder="e.g. Push Day, Leg Day..."/>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modalCreateDay')">Cancel</button>
-      <button class="btn btn-primary" onclick="createDay()">Create</button>
+      <button class="btn btn-ghost" onclick="closeModal('modalNewDay')">Cancel</button>
+      <button class="btn btn-primary" id="btnSaveDay" onclick="saveNewDay()">Create</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="modalRenameDay" onclick="bgClose(event,'modalRenameDay')">
-  <div class="modal-box">
+<!-- Edit Day -->
+<div class="modal-overlay modal" id="modalEditDay">
+  <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
-      <span class="modal-title">Rename Day</span>
-      <button class="modal-close" onclick="closeModal('modalRenameDay')">&#215;</button>
+      <span class="modal-title">Edit Day</span>
+      <button class="modal-close" onclick="closeModal('modalEditDay')">&#215;</button>
     </div>
     <div class="form-group">
-      <label class="form-label">New Name</label>
-      <input type="text" id="inRenameDayName" class="form-input"/>
+      <label class="form-label">Name</label>
+      <input type="text" id="inpEditDay" class="form-input"/>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modalRenameDay')">Cancel</button>
-      <button class="btn btn-primary" onclick="doRenameDay()">Save</button>
+      <button class="btn btn-danger" onclick="delDay()">Delete</button>
+      <button class="btn btn-primary" id="btnUpdateDay" onclick="saveEditDay()">Save</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="modalAddExercise" onclick="bgClose(event,'modalAddExercise')">
-  <div class="modal-box">
+<!-- New Exercise -->
+<div class="modal-overlay modal" id="modalNewEx">
+  <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
-      <span class="modal-title">Add Exercise</span>
-      <button class="modal-close" onclick="closeModal('modalAddExercise')">&#215;</button>
+      <span class="modal-title">New Exercise</span>
+      <button class="modal-close" onclick="closeModal('modalNewEx')">&#215;</button>
     </div>
     <div class="form-group">
       <label class="form-label">Exercise Name</label>
-      <input type="text" id="inExName" class="form-input" placeholder="e.g. Bench Press, Squat..."/>
+      <input type="text" id="inpNewEx" class="form-input" placeholder="e.g. Bench Press..."/>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modalAddExercise')">Cancel</button>
-      <button class="btn btn-primary" onclick="addExercise()">Add</button>
+      <button class="btn btn-ghost" onclick="closeModal('modalNewEx')">Cancel</button>
+      <button class="btn btn-primary" id="btnSaveEx" onclick="saveNewEx()">Create</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="modalRenameExercise" onclick="bgClose(event,'modalRenameExercise')">
-  <div class="modal-box">
+<!-- Edit Exercise -->
+<div class="modal-overlay modal" id="modalEditEx">
+  <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
-      <span class="modal-title">Rename Exercise</span>
-      <button class="modal-close" onclick="closeModal('modalRenameExercise')">&#215;</button>
+      <span class="modal-title">Edit Exercise</span>
+      <button class="modal-close" onclick="closeModal('modalEditEx')">&#215;</button>
     </div>
     <div class="form-group">
-      <label class="form-label">New Name</label>
-      <input type="text" id="inRenameExName" class="form-input"/>
+      <label class="form-label">Name</label>
+      <input type="text" id="inpEditEx" class="form-input"/>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modalRenameExercise')">Cancel</button>
-      <button class="btn btn-primary" onclick="doRenameExercise()">Save</button>
+      <button class="btn btn-danger" onclick="delEx()">Delete</button>
+      <button class="btn btn-primary" id="btnUpdateEx" onclick="saveEditEx()">Save</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="modalCreateMeasurement" onclick="bgClose(event,'modalCreateMeasurement')">
-  <div class="modal-box">
+<!-- Log Set -->
+<div class="modal-overlay modal" id="modalSet">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Log Set</span>
+      <button class="modal-close" onclick="closeModal('modalSet')">&#215;</button>
+    </div>
+    <div class="add-grid">
+      <div class="input-group">
+        <label class="input-label">Reps</label>
+        <input type="number" id="inpReps" class="num-input" placeholder="10" min="1" max="999" inputmode="numeric"/>
+        <div class="quick-row">
+          <button class="qbtn" onclick="adj('inpReps',1)">+1</button>
+          <button class="qbtn" onclick="adj('inpReps',-1)">−1</button>
+        </div>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Weight (kg)</label>
+        <input type="number" id="inpWeight" class="num-input" placeholder="50" min="0" max="9999" step="0.5" inputmode="decimal"/>
+        <div class="quick-row">
+          <button class="qbtn" onclick="adj('inpWeight',2.5)">+2.5</button>
+          <button class="qbtn" onclick="adj('inpWeight',5)">+5</button>
+          <button class="qbtn" onclick="adj('inpWeight',-2.5)">−2.5</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" id="btnSaveSet" style="margin-top:0.5rem" onclick="saveSet()">Log Set</button>
+  </div>
+</div>
+
+<!-- New Measurement -->
+<div class="modal-overlay modal" id="modalNewMeas">
+  <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
       <span class="modal-title">New Measurement</span>
-      <button class="modal-close" onclick="closeModal('modalCreateMeasurement')">&#215;</button>
+      <button class="modal-close" onclick="closeModal('modalNewMeas')">&#215;</button>
     </div>
     <div class="form-group">
       <label class="form-label">Measurement Name</label>
-      <input type="text" id="inMeasName" class="form-input" placeholder="e.g. Weight, Chest..."/>
+      <input type="text" id="inpNewMeas" class="form-input" placeholder="e.g. Weight..."/>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modalCreateMeasurement')">Cancel</button>
-      <button class="btn btn-primary" onclick="createMeasurement()">Create</button>
+      <button class="btn btn-ghost" onclick="closeModal('modalNewMeas')">Cancel</button>
+      <button class="btn btn-primary" id="btnSaveMeas" onclick="saveNewMeas()">Create</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="modalRenameMeasurement" onclick="bgClose(event,'modalRenameMeasurement')">
-  <div class="modal-box">
+<!-- Edit Measurement -->
+<div class="modal-overlay modal" id="modalEditMeas">
+  <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
-      <span class="modal-title">Rename Measurement</span>
-      <button class="modal-close" onclick="closeModal('modalRenameMeasurement')">&#215;</button>
+      <span class="modal-title">Edit Measurement</span>
+      <button class="modal-close" onclick="closeModal('modalEditMeas')">&#215;</button>
     </div>
     <div class="form-group">
-      <label class="form-label">New Name</label>
-      <input type="text" id="inRenameMeasName" class="form-input"/>
+      <label class="form-label">Name</label>
+      <input type="text" id="inpEditMeas" class="form-input"/>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modalRenameMeasurement')">Cancel</button>
-      <button class="btn btn-primary" onclick="doRenameMeasurement()">Save</button>
+      <button class="btn btn-danger" onclick="delMeas()">Delete</button>
+      <button class="btn btn-primary" id="btnUpdateMeas" onclick="saveEditMeas()">Save</button>
     </div>
   </div>
 </div>
 
-<script>
-/* ═══════════════════════════════════════════
-   GYMLOG — FULL CLIENT APP
-   Data lives in localStorage — persists forever
-   Works completely offline once loaded
-═══════════════════════════════════════════ */
-
-// ── STORAGE ──────────────────────────────
-const KEY = 'gymlog_data';
-function load() {
-  try { return JSON.parse(localStorage.getItem(KEY)) || {days:[],measurements:[]}; }
-  catch(e) { return {days:[],measurements:[]}; }
-}
-function save(db) { localStorage.setItem(KEY, JSON.stringify(db)); }
-function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-function today() { return new Date().toISOString().slice(0,10); }
-function fmt(d) {
-  if(!d) return '';
-  const [y,m,day]=d.split('-');
-  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]+' '+parseInt(day)+', '+y;
-}
-function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-// ── ROUTER ───────────────────────────────
-let curPage='dashboard', curDayId=null, curExId=null, curMeasId=null;
-const pages={
-  dashboard:'pageDashboard',day:'pageDay',exercise:'pageExercise',progress:'pageProgress',
-  measurements:'pageMeasurements',measurementDetail:'pageMeasurementDetail',measurementProgress:'pageMeasurementProgress'
-};
-
-window.onpopstate = function(e) {
-  if (e.state && e.state.page) goTo(e.state.page, true);
-  else goTo('dashboard', true);
-};
-
-function goTo(p, fromPop = false) {
-  if (!fromPop && p !== curPage) history.pushState({page: p}, '', '');
-  
-  Object.values(pages).forEach(id=>document.getElementById(id).classList.remove('active'));
-  document.getElementById(pages[p]).classList.add('active');
-  window.scrollTo(0,0);
-  curPage=p;
-  // Bottom nav
-  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));
-  const map={dashboard:'bnav-w',day:'bnav-w',exercise:'bnav-w',progress:'bnav-w',measurements:'bnav-m',measurementDetail:'bnav-m',measurementProgress:'bnav-m'};
-  document.getElementById(map[p])?.classList.add('active');
-  document.getElementById('bottomNav').style.display=(p==='progress'||p==='measurementProgress')?'none':'flex';
-  updateThemeBtns();
-  // Render
-  if(p==='dashboard')  renderDash();
-  if(p==='day')        renderDay();
-  if(p==='exercise')   renderEx();
-  if(p==='progress'){const _n=new Date();_progMonth=_n.getMonth();_progYear=_n.getFullYear();renderProg();}
-  if(p==='measurements') renderMeasurements();
-  if(p==='measurementDetail') renderMeasurementDetail();
-  if(p==='measurementProgress'){const _n=new Date();_mProgMonth=_n.getMonth();_mProgYear=_n.getFullYear();renderMeasurementProgress();}
-}
-
-// ── THEME ────────────────────────────────
-function toggleTheme(){
-  const next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
-  document.documentElement.setAttribute('data-theme',next);
-  localStorage.setItem('gymlog_theme',next);
-  document.getElementById('themeColor').content=next==='dark'?'#0a0a0a':'#f2f2f2';
-  updateThemeBtns();
-}
-function updateThemeBtns(){
-  const lbl=document.documentElement.getAttribute('data-theme')==='dark'?'Light':'Dark';
-  ['themeBtn','themeBtnDay','themeBtnEx','themeBtnProg','themeBtnMeas','themeBtnMeasDet','themeBtnMeasProg'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent=lbl;
-  });
-}
-(function(){
-  const t=localStorage.getItem('gymlog_theme')||'dark';
-  document.documentElement.setAttribute('data-theme',t);
-  document.getElementById('themeColor').content=t==='dark'?'#0a0a0a':'#f2f2f2';
-})();
-
-// ── TOAST ────────────────────────────────
-let _tt;
-function toast(msg,type='success'){
-  const el=document.getElementById('toast');
-  el.textContent=msg; el.className='show '+(type||'');
-  clearTimeout(_tt); _tt=setTimeout(()=>{el.className='';},2000);
-}
-
-// ── CONFIRM ──────────────────────────────
-let confirmResolve=()=>{};
-function confirm2(msg){
-  return new Promise(r=>{
-    document.getElementById('confirmMsg').textContent=msg;
-    document.getElementById('confirmOverlay').classList.add('open');
-    confirmResolve=v=>{document.getElementById('confirmOverlay').classList.remove('open');r(v);};
-  });
-}
-
-// ── MODALS ───────────────────────────────
-function openModal(id){
-  document.getElementById(id).classList.add('open');
-  const inp=document.querySelector('#'+id+' input, #'+id+' textarea');
-  if(inp) setTimeout(()=>inp.focus(),80);
-}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
-function bgClose(e,id){if(e.target===document.getElementById(id)) closeModal(id);}
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
-});
-
-// ── QUICK ADJUST ─────────────────────────
-function adj(id,amt){
-  const el=document.getElementById(id); if(!el) return;
-  let v=Math.round((+(el.value||0)+amt)*100)/100;
-  const mn=el.min!==''?+el.min:null;
-  if(mn!==null&&v<mn) v=mn;
-  el.value=v;
-}
-
-// ════════════════════════════════════════
-// DASHBOARD
-// ════════════════════════════════════════
-function renderDash(){
-  const h=new Date().getHours();
-  document.getElementById('dashGreet').textContent=(h<12?'Good morning':h<17?'Good afternoon':'Good evening')+' — let\'s train';
-  const db=load(), list=document.getElementById('daysList');
-  if(!db.days.length){
-    list.innerHTML=`<div class="empty"><div class="empty-title">No Workout Days Yet</div><p class="empty-text">Create your first workout day to start tracking your training.</p><button class="btn btn-primary btn-lg" onclick="openModal('modalCreateDay')">Create First Day</button></div>`;
-    return;
-  }
-  list.innerHTML=db.days.map(d=>`
-    <div class="card">
-      <div class="card-row card-clickable" onclick="openDay('${d.id}')">
-        <div class="card-icon">${esc(d.name.slice(0,2).toUpperCase())}</div>
-        <div class="card-body">
-          <div class="card-title">${esc(d.name)}</div>
-          <div class="card-meta">${(d.exercises||[]).length} exercise${(d.exercises||[]).length!==1?'s':''}</div>
+<!-- Log Measurement Entry -->
+<div class="modal-overlay modal" id="modalMeasEntry">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Log Entry</span>
+      <button class="modal-close" onclick="closeModal('modalMeasEntry')">&#215;</button>
+    </div>
+    <div class="add-grid">
+      <div class="input-group">
+        <label class="input-label">Value</label>
+        <input type="number" id="inpMeasVal" class="num-input" placeholder="0" step="0.1" inputmode="decimal"/>
+        <div class="quick-row">
+          <button class="qbtn" onclick="adj('inpMeasVal',0.5)">+0.5</button>
+          <button class="qbtn" onclick="adj('inpMeasVal',1)">+1.0</button>
+          <button class="qbtn" onclick="adj('inpMeasVal',-0.5)">−0.5</button>
         </div>
-        <div class="card-chevron">›</div>
       </div>
-      <div class="card-actions">
-        <button class="icon-btn edit" onclick="startRenameDay('${d.id}')">Edit</button>
-        <button class="icon-btn del" onclick="deleteDay('${d.id}')">Delete</button>
+      <div class="input-group">
+        <label class="input-label">Unit</label>
+        <select id="inpMeasUnit" class="num-input" style="padding:0">
+          <option value="kg">kg</option>
+          <option value="lbs">lbs</option>
+          <option value="cm">cm</option>
+          <option value="in">inch</option>
+          <option value="%">%</option>
+        </select>
       </div>
-    </div>`).join('');
-}
+    </div>
+    <div class="form-group" style="margin-top:1rem">
+      <label class="form-label">Date</label>
+      <input type="date" id="inpMeasDate" class="form-input"/>
+    </div>
+    <button class="btn btn-primary btn-full" id="btnSaveMeasEntry" style="margin-top:0.5rem" onclick="saveMeasEntry()">Save</button>
+  </div>
+</div>
 
-function createDay(){
-  const name=document.getElementById('inDayName').value.trim(); if(!name) return;
-  const db=load(); db.days.push({id:uid(),name,exercises:[],createdAt:today()}); save(db);
-  closeModal('modalCreateDay'); document.getElementById('inDayName').value='';
-  toast('Workout day created'); renderDash();
-}
-
-let _renDayId=null;
-function startRenameDay(id){ _renDayId=id; const d=load().days.find(d=>d.id===id); if(!d) return; document.getElementById('inRenameDayName').value=d.name; openModal('modalRenameDay'); }
-function doRenameDay(){ const name=document.getElementById('inRenameDayName').value.trim(); if(!name) return; const db=load(),d=db.days.find(d=>d.id===_renDayId); if(d) d.name=name; save(db); closeModal('modalRenameDay'); toast('Day renamed'); renderDash(); }
-
-async function deleteDay(id){ const ok=await confirm2('Delete this workout day and all its exercises? This cannot be undone.'); if(!ok) return; const db=load(); db.days=db.days.filter(d=>d.id!==id); save(db); toast('Deleted','error'); renderDash(); }
-
-function openDay(id){ curDayId=id; goTo('day'); }
-
-// ════════════════════════════════════════
-// WORKOUT DAY
-// ════════════════════════════════════════
-function renderDay(){
-  const db=load(), day=db.days.find(d=>d.id===curDayId); if(!day){goTo('dashboard');return;}
-  document.getElementById('dayTitle').textContent=day.name;
-  const list=document.getElementById('exercisesList');
-  if(!(day.exercises||[]).length){
-    list.innerHTML=`<div class="empty"><div class="empty-title">No Exercises Yet</div><p class="empty-text">Add exercises to this workout day.</p><button class="btn btn-primary btn-lg" onclick="openModal('modalAddExercise')">Add First Exercise</button></div>`;
-    return;
-  }
-  list.innerHTML=day.exercises.map(ex=>`
-    <div class="card">
-      <div class="card-row card-clickable" onclick="openEx('${ex.id}')">
-        <div class="card-icon" style="background:var(--gdim);color:var(--green);">${esc(ex.name.slice(0,2).toUpperCase())}</div>
-        <div class="card-body">
-          <div class="card-title">${esc(ex.name)}</div>
-          <div class="card-meta">${(ex.sets||[]).length} set${(ex.sets||[]).length!==1?'s':''} today · ${(ex.history||[]).length} session${(ex.history||[]).length!==1?'s':''} logged</div>
-        </div>
-        <div class="card-chevron">›</div>
-      </div>
-      <div class="card-actions">
-        <button class="icon-btn edit" onclick="startRenameEx('${ex.id}')">Edit</button>
-        <button class="icon-btn del" onclick="deleteEx('${ex.id}')">Delete</button>
-      </div>
-    </div>`).join('');
-}
-
-function addExercise(){
-  const name=document.getElementById('inExName').value.trim(); if(!name) return;
-  const db=load(), day=db.days.find(d=>d.id===curDayId); if(!day) return;
-  if(!day.exercises) day.exercises=[];
-  day.exercises.push({id:uid(),name,sets:[],history:[]}); save(db);
-  closeModal('modalAddExercise'); document.getElementById('inExName').value='';
-  toast('Exercise added'); renderDay();
-}
-
-let _renExId=null;
-function startRenameEx(id){ _renExId=id; const db=load(),day=db.days.find(d=>d.id===curDayId),ex=(day?.exercises||[]).find(e=>e.id===id); if(!ex) return; document.getElementById('inRenameExName').value=ex.name; openModal('modalRenameExercise'); }
-function doRenameExercise(){ const name=document.getElementById('inRenameExName').value.trim(); if(!name) return; const db=load(),day=db.days.find(d=>d.id===curDayId),ex=(day?.exercises||[]).find(e=>e.id===_renExId); if(ex) ex.name=name; save(db); closeModal('modalRenameExercise'); toast('Renamed'); renderDay(); }
-
-async function deleteEx(id){ const ok=await confirm2('Delete this exercise and all its sets and history?'); if(!ok) return; const db=load(),day=db.days.find(d=>d.id===curDayId); if(day) day.exercises=(day.exercises||[]).filter(e=>e.id!==id); save(db); toast('Deleted','error'); renderDay(); }
-
-function openEx(id){ curExId=id; goTo('exercise'); }
-
-// ════════════════════════════════════════
-// EXERCISE PAGE
-// ════════════════════════════════════════
-function getEx(){ const db=load(),day=db.days.find(d=>d.id===curDayId); return (day?.exercises||[]).find(e=>e.id===curExId); }
-
-function renderEx(){
-  const ex=getEx(); if(!ex){goTo('day');return;}
-  const db=load(),day=db.days.find(d=>d.id===curDayId);
-  document.getElementById('exTitle').textContent=ex.name;
-  document.getElementById('exBack').textContent='‹ '+(day?.name||'Back');
-
-  // Last session suggestion
-  const hist=ex.history||[];
-  const lastCard=document.getElementById('lastSessionCard');
-  if(hist.length){
-    const last=hist[hist.length-1];
-    lastCard.innerHTML=`<div class="last-card"><div class="last-header"><span class="last-label">Last Workout</span><span class="last-date">${fmt(last.date)}</span></div>${(last.sets||[]).map(s=>`<div class="last-row"><span class="last-num">Set ${s.num}</span><span class="last-val">${s.reps} reps — ${s.weight} kg</span></div>`).join('')}</div>`;
-  } else lastCard.innerHTML='';
-
-  // Sets
-  const sets=ex.sets||[];
-  document.getElementById('setBadge').textContent=sets.length+' set'+(sets.length!==1?'s':'');
-  const noSets=document.getElementById('noSets');
-  const setsList=document.getElementById('setsList');
-  noSets.style.display=sets.length?'none':'block';
-  setsList.innerHTML=sets.map((s,i)=>`
-    <div class="set-row" id="sr${s.id}">
-      <div class="set-badge">${i+1}</div>
-      <div class="set-info" id="si${s.id}">
-        <span class="set-reps">${s.reps} reps</span>
-        <span class="set-sep">—</span>
-        <span class="set-weight">${s.weight} kg</span>
-      </div>
-      <div class="set-edit" id="se${s.id}">
-        <input type="number" id="er${s.id}" value="${s.reps}" min="1" max="999" inputmode="numeric"/>
-        <span>reps</span>
-        <input type="number" id="ew${s.id}" value="${s.weight}" min="0" step="0.5" inputmode="decimal"/>
-        <span>kg</span>
-        <button class="btn btn-xs btn-primary" onclick="saveEditSet('${s.id}')">Save</button>
-        <button class="btn btn-xs btn-ghost" onclick="cancelEdit('${s.id}')">Cancel</button>
-      </div>
-      <div class="set-act" id="sa${s.id}">
-        <button class="icon-btn edit" onclick="startEditSet('${s.id}')">Edit</button>
-        <button class="icon-btn del" onclick="delSet('${s.id}')">Del</button>
-      </div>
-    </div>`).join('');
-
-  document.getElementById('saveSection').style.display=sets.length?'block':'none';
-}
-
-function addSet(){
-  const reps=parseFloat(document.getElementById('inReps').value);
-  const weight=parseFloat(document.getElementById('inWeight').value);
-  if(!reps||reps<1){toast('Enter reps','error');return;}
-  if(isNaN(weight)||weight<0){toast('Enter weight','error');return;}
-  const db=load(),day=db.days.find(d=>d.id===curDayId),ex=(day?.exercises||[]).find(e=>e.id===curExId);
-  if(!ex) return;
-  if(!ex.sets) ex.sets=[];
-  ex.sets.push({id:uid(),num:ex.sets.length+1,reps,weight});
-  save(db);
-  document.getElementById('inReps').value='';
-  document.getElementById('inWeight').value='';
-  toast('Set logged'); renderEx();
-}
-
-function startEditSet(id){
-  document.getElementById('si'+id).style.display='none';
-  document.getElementById('se'+id).classList.add('open');
-  document.getElementById('sa'+id).style.display='none';
-}
-function cancelEdit(id){
-  document.getElementById('si'+id).style.display='flex';
-  document.getElementById('se'+id).classList.remove('open');
-  document.getElementById('sa'+id).style.display='flex';
-}
-function saveEditSet(id){
-  const reps=parseFloat(document.getElementById('er'+id).value);
-  const weight=parseFloat(document.getElementById('ew'+id).value);
-  if(!reps||isNaN(weight)){toast('Invalid values','error');return;}
-  const db=load(),day=db.days.find(d=>d.id===curDayId),ex=(day?.exercises||[]).find(e=>e.id===curExId);
-  const s=(ex?.sets||[]).find(s=>s.id===id);
-  if(s){s.reps=reps;s.weight=weight;}
-  save(db); toast('Set updated'); renderEx();
-}
-async function delSet(id){
-  const ok=await confirm2('Delete this set?'); if(!ok) return;
-  const db=load(),day=db.days.find(d=>d.id===curDayId),ex=(day?.exercises||[]).find(e=>e.id===curExId);
-  if(ex){ ex.sets=(ex.sets||[]).filter(s=>s.id!==id); ex.sets.forEach((s,i)=>s.num=i+1); }
-  save(db); toast('Set deleted','error'); renderEx();
-}
-
-function saveSession(){
-  const db=load(),day=db.days.find(d=>d.id===curDayId),ex=(day?.exercises||[]).find(e=>e.id===curExId);
-  if(!ex||(ex.sets||[]).length===0) return;
-  if(!ex.history) ex.history=[];
-  ex.history.push({id:uid(),date:today(),sets:ex.sets.map(s=>({num:s.num,reps:s.reps,weight:s.weight}))});
-  ex.sets=[];
-  save(db); toast('Workout saved to history!'); renderEx();
-}
-
-// ════════════════════════════════════════
-// PROGRESS
-// ════════════════════════════════════════
-let wChart=null,mChart=null,rChart=null;
-let _progMonth=new Date().getMonth(), _progYear=new Date().getFullYear();
-
-function renderProg(){
-  const ex=getEx(); if(!ex){goTo('exercise');return;}
-  document.getElementById('progTitle').textContent=ex.name;
-  const hist=ex.history||[];
-
-  // Build year options from all history
-  const years=[...new Set((hist).map(h=>new Date(h.date).getFullYear()))].sort((a,b)=>a-b);
-  const now=new Date();
-  if(!years.length) years.push(now.getFullYear());
-  // Clamp defaults to available years
-  if(!years.includes(_progYear)) _progYear=years[years.length-1];
-
-  const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
-
-  // Inject month/year selectors into page header
-  let selContainer=document.getElementById('progSelectors');
-  if(!selContainer){
-    const header=document.querySelector('#pageProgress .page-header');
-    selContainer=document.createElement('div');
-    selContainer.id='progSelectors';
-    selContainer.style.cssText='display:flex;align-items:center;gap:0.5rem;flex-shrink:0;margin-top:0.25rem;';
-    header.appendChild(selContainer);
-  }
-  selContainer.innerHTML=`
-    <select id="progMonthSel" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r3);color:var(--text);padding:0 0.5rem;height:34px;font-size:0.8rem;font-family:var(--fb);outline:none;cursor:pointer;">
-      ${monthNames.map((m,i)=>`<option value="${i}"${i===_progMonth?' selected':''}>${m}</option>`).join('')}
-    </select>
-    <select id="progYearSel" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r3);color:var(--text);padding:0 0.5rem;height:34px;font-size:0.8rem;font-family:var(--fb);outline:none;cursor:pointer;">
-      ${years.map(y=>`<option value="${y}"${y===_progYear?' selected':''}>${y}</option>`).join('')}
-    </select>`;
-
-  document.getElementById('progMonthSel').onchange=function(){_progMonth=parseInt(this.value);updateProgressCharts(ex);};
-  document.getElementById('progYearSel').onchange=function(){_progYear=parseInt(this.value);updateProgressCharts(ex);};
-
-  updateProgressCharts(ex);
-}
-
-function updateProgressCharts(ex){
-  if(!ex) ex=getEx(); if(!ex) return;
-  const hist=ex.history||[];
-  const c=document.getElementById('progContent');
-
-  // Filter by selected month/year
-  const filtered=hist.filter(h=>{const d=new Date(h.date);return d.getMonth()===_progMonth&&d.getFullYear()===_progYear;});
-
-  if(!filtered.length){
-    c.innerHTML=`<div class="empty"><div class="empty-title">No History Yet</div><p class="empty-text">Save a workout session to start seeing progress charts.</p></div>`;
-    if(wChart){wChart.destroy();wChart=null;}
-    if(mChart){mChart.destroy();mChart=null;}
-    if(rChart){rChart.destroy();rChart=null;}
-    return;
-  }
-
-  const dark=document.documentElement.getAttribute('data-theme')==='dark';
-  const gc=dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';
-  const tc=dark?'#777':'#888';
-
-  // X-axis: day number only
-  const labels=filtered.map(h=>new Date(h.date).getDate());
-  const mw=filtered.map(h=>Math.max(...(h.sets||[{weight:0}]).map(s=>s.weight)));
-  const mrAtMw=filtered.map(h=>{
-    const sets=h.sets||[];
-    if(!sets.length) return 0;
-    const maxW=Math.max(...sets.map(s=>s.weight));
-    return Math.max(...sets.filter(s=>s.weight===maxW).map(s=>s.reps));
-  });
-  const mr=filtered.map(h=>Math.max(...(h.sets||[{reps:0}]).map(s=>s.reps)));
-
-  c.innerHTML=`
-    <div class="chart-card"><div class="chart-label">Max Weight per Session (kg)</div><div class="chart-wrap"><canvas id="wc"></canvas></div></div>
-    <div class="chart-card"><div class="chart-label">Max Reps at Max Weight</div><div class="chart-wrap"><canvas id="mc"></canvas></div></div>
-    <div class="chart-card"><div class="chart-label">Max Reps per Session</div><div class="chart-wrap"><canvas id="rc"></canvas></div></div>
-    <div class="section-header"><span class="section-title">Workout History</span></div>
-    ${[...filtered].reverse().map(h=>`<div class="hist-card"><div class="hist-date">${fmt(h.date)}</div>${(h.sets||[]).map(s=>`<div class="hist-row"><span class="hist-num">Set ${s.num}</span><span class="hist-val">${s.reps} reps — ${s.weight} kg</span></div>`).join('')}</div>`).join('')}`;
-
-  if(wChart){wChart.destroy();wChart=null;}
-  if(mChart){mChart.destroy();mChart=null;}
-  if(rChart){rChart.destroy();rChart=null;}
-
-  const opts=(color,data)=>({
-    type:'line',
-    data:{labels,datasets:[{data,borderColor:color,backgroundColor:color+'22',pointBackgroundColor:color,pointRadius:5,tension:0.3,fill:true}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:dark?'#1c1c1c':'#fff',titleColor:dark?'#eee':'#111',bodyColor:dark?'#aaa':'#555',borderColor:color,borderWidth:1}},scales:{x:{ticks:{color:tc,maxRotation:40,font:{size:11}},grid:{color:gc}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc}}}}
-  });
-  wChart=new Chart(document.getElementById('wc').getContext('2d'),opts('#ff6b35',mw));
-  mChart=new Chart(document.getElementById('mc').getContext('2d'),opts('#4ade80',mrAtMw));
-  rChart=new Chart(document.getElementById('rc').getContext('2d'),opts('#60a5fa',mr));
-}
-
-// ════════════════════════════════════════
-// MEASUREMENTS
-// ════════════════════════════════════════
-function renderMeasurements(){
-  const db=load(), list=document.getElementById('measurementsList');
-  if(!(db.measurements||[]).length){
-    list.innerHTML=`<div class="empty"><div class="empty-title">No Measurements Yet</div><p class="empty-text">Track body metrics by adding a measurement type.</p><button class="btn btn-primary btn-lg" onclick="openModal('modalCreateMeasurement')">Create First Measurement</button></div>`;
-    return;
-  }
-  list.innerHTML=(db.measurements||[]).map(m=>`
-    <div class="card">
-      <div class="card-row card-clickable" onclick="openMeasurement('${m.id}')">
-        <div class="card-icon">${esc(m.name.slice(0,2).toUpperCase())}</div>
-        <div class="card-body">
-          <div class="card-title">${esc(m.name)}</div>
-          <div class="card-meta">${(m.entries||[]).length} entr${(m.entries||[]).length!==1?'ies':'y'}</div>
-        </div>
-        <div class="card-chevron">›</div>
-      </div>
-      <div class="card-actions">
-        <button class="icon-btn edit" onclick="startRenameMeasurement('${m.id}')">Edit</button>
-        <button class="icon-btn del" onclick="deleteMeasurement('${m.id}')">Delete</button>
-      </div>
-    </div>`).join('');
-}
-
-function createMeasurement(){
-  const name=document.getElementById('inMeasName').value.trim(); if(!name) return;
-  const db=load(); if(!db.measurements) db.measurements=[];
-  db.measurements.push({id:uid(),name,entries:[],createdAt:today()}); save(db);
-  closeModal('modalCreateMeasurement'); document.getElementById('inMeasName').value='';
-  toast('Measurement created'); renderMeasurements();
-}
-
-let _renMeasId=null;
-function startRenameMeasurement(id){ _renMeasId=id; const db=load(), m=(db.measurements||[]).find(m=>m.id===id); if(!m) return; document.getElementById('inRenameMeasName').value=m.name; openModal('modalRenameMeasurement'); }
-function doRenameMeasurement(){ const name=document.getElementById('inRenameMeasName').value.trim(); if(!name) return; const db=load(), m=(db.measurements||[]).find(m=>m.id===_renMeasId); if(m) m.name=name; save(db); closeModal('modalRenameMeasurement'); toast('Renamed'); renderMeasurements(); }
-async function deleteMeasurement(id){ const ok=await confirm2('Delete this measurement and all its entries?'); if(!ok) return; const db=load(); db.measurements=(db.measurements||[]).filter(m=>m.id!==id); save(db); toast('Deleted','error'); renderMeasurements(); }
-
-function openMeasurement(id){ curMeasId=id; goTo('measurementDetail'); }
-
-function renderMeasurementDetail(){
-  const db=load(), m=(db.measurements||[]).find(x=>x.id===curMeasId); if(!m){goTo('measurements');return;}
-  document.getElementById('measTitle').textContent=m.name;
-  
-  const entries=m.entries||[];
-  document.getElementById('measBadge').textContent=entries.length+' entr'+(entries.length!==1?'ies':'y');
-  const noMeasEntries=document.getElementById('noMeasEntries');
-  const list=document.getElementById('measEntriesList');
-  noMeasEntries.style.display=entries.length?'none':'block';
-  list.innerHTML=[...entries].reverse().map((e)=>`
-    <div class="set-row">
-      <div class="set-badge" style="width:auto;padding:0 0.5rem;border-radius:var(--r3);background:var(--adim);color:var(--accent);font-weight:700;font-size:0.8rem;">${fmt(e.date).split(' ')[0]} ${fmt(e.date).split(' ')[1].replace(',','')}</div>
-      <div class="set-info">
-        <span class="set-weight">${e.value} ${e.unit}</span>
-      </div>
-      <div class="set-act">
-        <button class="icon-btn del" onclick="deleteMeasurementEntry('${e.id}')">Del</button>
-      </div>
-    </div>`).join('');
-}
-
-function addMeasurementEntry(){
-  const val=parseFloat(document.getElementById('inMeasValue').value);
-  const unit=document.getElementById('inMeasUnit').value;
-  if(isNaN(val)){toast('Enter valid value','error');return;}
-  const db=load(), m=(db.measurements||[]).find(x=>x.id===curMeasId); if(!m) return;
-  if(!m.entries) m.entries=[];
-  m.entries.push({id:uid(),date:today(),value:val,unit});
-  save(db);
-  document.getElementById('inMeasValue').value='';
-  toast('Entry logged'); renderMeasurementDetail();
-}
-
-async function deleteMeasurementEntry(id){
-  const ok=await confirm2('Delete this entry?'); if(!ok) return;
-  const db=load(), m=(db.measurements||[]).find(x=>x.id===curMeasId);
-  if(m){ m.entries=(m.entries||[]).filter(e=>e.id!==id); }
-  save(db); toast('Entry deleted','error'); renderMeasurementDetail();
-}
-
-let measChart=null;
-let _mProgMonth=new Date().getMonth(), _mProgYear=new Date().getFullYear();
-
-function renderMeasurementProgress(){
-  const db=load(), m=(db.measurements||[]).find(x=>x.id===curMeasId); if(!m){goTo('measurementDetail');return;}
-  document.getElementById('measProgTitle').textContent=m.name;
-  const entries=m.entries||[];
-
-  const years=[...new Set((entries).map(e=>new Date(e.date).getFullYear()))].sort((a,b)=>a-b);
-  const now=new Date();
-  if(!years.length) years.push(now.getFullYear());
-  if(!years.includes(_mProgYear)) _mProgYear=years[years.length-1];
-
-  const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
-
-  let selContainer=document.getElementById('measProgSelectors');
-  if(!selContainer){
-    const header=document.querySelector('#pageMeasurementProgress .page-header');
-    selContainer=document.createElement('div');
-    selContainer.id='measProgSelectors';
-    selContainer.style.cssText='display:flex;align-items:center;gap:0.5rem;flex-shrink:0;margin-top:0.25rem;';
-    header.appendChild(selContainer);
-  }
-  selContainer.innerHTML=`
-    <select id="measProgMonthSel" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r3);color:var(--text);padding:0 0.5rem;height:34px;font-size:0.8rem;font-family:var(--fb);outline:none;cursor:pointer;">
-      ${monthNames.map((mn,i)=>`<option value="${i}"${i===_mProgMonth?' selected':''}>${mn}</option>`).join('')}
-    </select>
-    <select id="measProgYearSel" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r3);color:var(--text);padding:0 0.5rem;height:34px;font-size:0.8rem;font-family:var(--fb);outline:none;cursor:pointer;">
-      ${years.map(y=>`<option value="${y}"${y===_mProgYear?' selected':''}>${y}</option>`).join('')}
-    </select>`;
-
-  document.getElementById('measProgMonthSel').onchange=function(){_mProgMonth=parseInt(this.value);updateMeasProgressChart();};
-  document.getElementById('measProgYearSel').onchange=function(){_mProgYear=parseInt(this.value);updateMeasProgressChart();};
-
-  updateMeasProgressChart();
-}
-
-function updateMeasProgressChart(){
-  const db=load(), ex=(db.measurements||[]).find(x=>x.id===curMeasId); if(!ex) return;
-  const entries=ex.entries||[];
-  const c=document.getElementById('measProgContent');
-
-  const filtered=entries.filter(e=>{const d=new Date(e.date);return d.getMonth()===_mProgMonth&&d.getFullYear()===_mProgYear;});
-
-  if(!filtered.length){
-    c.innerHTML=`<div class="empty"><div class="empty-title">No Data Yet</div><p class="empty-text">Log entries to see your progress chart.</p></div>`;
-    if(measChart){measChart.destroy();measChart=null;}
-    return;
-  }
-
-  const dark=document.documentElement.getAttribute('data-theme')==='dark';
-  const gc=dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';
-  const tc=dark?'#777':'#888';
-
-  const labels=filtered.map(e=>new Date(e.date).getDate());
-  const data=filtered.map(e=>e.value);
-
-  c.innerHTML=`
-    <div class="chart-card"><div class="chart-label">${esc(ex.name)} Progression</div><div class="chart-wrap"><canvas id="measChartCanvas"></canvas></div></div>
-    <div class="section-header"><span class="section-title">History</span></div>
-    ${[...filtered].reverse().map(e=>`<div class="hist-card"><div class="hist-row" style="align-items:center;justify-content:space-between;"><span class="hist-date" style="margin:0;">${fmt(e.date)}</span><span class="hist-val" style="font-weight:bold;color:var(--accent);">${e.value} ${e.unit}</span></div></div>`).join('')}`;
-
-  if(measChart){measChart.destroy();measChart=null;}
-  
-  const color='#4ade80';
-  const opts={
-    type:'line',
-    data:{labels,datasets:[{data,borderColor:color,backgroundColor:color+'22',pointBackgroundColor:color,pointRadius:5,tension:0.3,fill:true}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:dark?'#1c1c1c':'#fff',titleColor:dark?'#eee':'#111',bodyColor:dark?'#aaa':'#555',borderColor:color,borderWidth:1}},scales:{x:{ticks:{color:tc,maxRotation:40,font:{size:11}},grid:{color:gc}},y:{ticks:{color:tc,font:{size:11}},grid:{color:gc}}}}
-  };
-  measChart=new Chart(document.getElementById('measChartCanvas').getContext('2d'),opts);
-}
-
-// ── ENTER KEY SHORTCUTS ──────────────────
-document.addEventListener('keydown',e=>{
-  if(e.key!=='Enter') return;
-  if(document.getElementById('modalCreateDay').classList.contains('open')) createDay();
-  else if(document.getElementById('modalRenameDay').classList.contains('open')) doRenameDay();
-  else if(document.getElementById('modalAddExercise').classList.contains('open')) addExercise();
-  else if(document.getElementById('modalRenameExercise').classList.contains('open')) doRenameExercise();
-  else if(document.getElementById('modalCreateMeasurement').classList.contains('open')) createMeasurement();
-  else if(document.getElementById('modalRenameMeasurement').classList.contains('open')) doRenameMeasurement();
-});
-
-// ── INIT ────────────────────────────────
-if (!history.state) history.replaceState({page: 'dashboard'}, '', '');
-updateThemeBtns();
-renderDash();
-</script>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Supabase credentials — NEVER commit this file
+js/config.js
+.env
+.env.local
+.env.production
+
+# macOS
+.DS_Store
+*.DS_Store
+
+# Editor directories
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Build artifacts (if added later)
+dist/
+build/
