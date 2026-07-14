@@ -649,6 +649,78 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
   </div>
 </div>
 
+<div class="modal-overlay" id="modalSettings" onclick="bgClose(event,'modalSettings')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">Settings</span>
+      <button class="modal-close" onclick="closeModal('modalSettings')">&#215;</button>
+    </div>
+    <div class="section-header">
+      <span class="section-title">Data</span>
+    </div>
+    <div style="display:flex; flex-direction:column; gap: 0.75rem;">
+      <div class="card" style="margin-bottom:0; padding:1rem;">
+        <div style="font-weight:600; font-size:0.95rem; margin-bottom:0.4rem; color:var(--text);">Backup Data</div>
+        <div style="font-size:0.875rem; color:var(--text2); margin-bottom:0.85rem;">Create a complete backup of all GymLog data.</div>
+        <button class="btn btn-primary btn-full" onclick="generateBackup()">Backup</button>
+      </div>
+      <div class="card" style="margin-bottom:0; padding:1rem;">
+        <div style="font-weight:600; font-size:0.95rem; margin-bottom:0.4rem; color:var(--text);">Restore Backup</div>
+        <div style="font-size:0.875rem; color:var(--text2); margin-bottom:0.85rem;">Restore a previously created GymLog backup.</div>
+        <button class="btn btn-secondary btn-full" onclick="startRestore()">Restore</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalBackupPreview" onclick="bgClose(event,'modalBackupPreview')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">GymLog Backup</span>
+      <button class="modal-close" onclick="closeModal('modalBackupPreview')">&#215;</button>
+    </div>
+    <div style="display:flex; flex-direction:column; gap: 0.8rem; margin-bottom: 1.5rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.875rem; color:var(--text2);">Created</span>
+        <span id="prevCreated" style="font-weight:600; font-size:0.9rem; color:var(--text); text-align:right;"></span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.875rem; color:var(--text2);">App Version</span>
+        <span id="prevAppVer" style="font-weight:600; font-size:0.9rem; color:var(--text); text-align:right;"></span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.875rem; color:var(--text2);">Schema Version</span>
+        <span id="prevSchemaVer" style="font-weight:600; font-size:0.9rem; color:var(--text); text-align:right;"></span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.875rem; color:var(--text2);">Workout Days</span>
+        <span id="prevDays" style="font-weight:600; font-size:0.9rem; color:var(--text); text-align:right;"></span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.875rem; color:var(--text2);">Exercises</span>
+        <span id="prevEx" style="font-weight:600; font-size:0.9rem; color:var(--text); text-align:right;"></span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.875rem; color:var(--text2);">Workout History</span>
+        <span id="prevHist" style="font-weight:600; font-size:0.9rem; color:var(--text); text-align:right;"></span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.875rem; color:var(--text2);">Measurements</span>
+        <span id="prevMeas" style="font-weight:600; font-size:0.9rem; color:var(--text); text-align:right;"></span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.875rem; color:var(--text2);">Theme</span>
+        <span id="prevTheme" style="font-weight:600; font-size:0.9rem; color:var(--text); text-align:right;"></span>
+      </div>
+    </div>
+    <div style="font-weight:600; font-size:1.05rem; margin-bottom:1rem; color:var(--text); text-align:center;">Restore this backup?</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalBackupPreview')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmBackupPreview()">Restore</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ═══════════════════════════════════════════
    GYMLOG — FULL CLIENT APP
@@ -775,23 +847,36 @@ function renderDash(){
   const db=load(), list=document.getElementById('daysList');
   if(!db.days.length){
     list.innerHTML=`<div class="empty"><div class="empty-title">No Workout Days Yet</div><p class="empty-text">Create your first workout day to start tracking your training.</p><button class="btn btn-primary btn-lg" onclick="openModal('modalCreateDay')">Create First Day</button></div>`;
-    return;
+  } else {
+    list.innerHTML=db.days.map(d=>`
+      <div class="card">
+        <div class="card-row card-clickable" onclick="openDay('${d.id}')">
+          <div class="card-icon">${esc(d.name.slice(0,2).toUpperCase())}</div>
+          <div class="card-body">
+            <div class="card-title">${esc(d.name)}</div>
+            <div class="card-meta">${(d.exercises||[]).length} exercise${(d.exercises||[]).length!==1?'s':''}</div>
+          </div>
+          <div class="card-chevron">›</div>
+        </div>
+        <div class="card-actions">
+          <button class="icon-btn edit" onclick="startRenameDay('${d.id}')">Edit</button>
+          <button class="icon-btn del" onclick="deleteDay('${d.id}')">Delete</button>
+        </div>
+      </div>`).join('');
   }
-  list.innerHTML=db.days.map(d=>`
+  list.innerHTML += `
+    <div class="section-header" style="margin-top: 1.5rem;"><span class="section-title">Application</span></div>
     <div class="card">
-      <div class="card-row card-clickable" onclick="openDay('${d.id}')">
-        <div class="card-icon">${esc(d.name.slice(0,2).toUpperCase())}</div>
+      <div class="card-row card-clickable" onclick="openModal('modalSettings')">
+        <div class="card-icon" style="background:var(--bg3);color:var(--text2); font-size:1.1rem; font-family:sans-serif;">⚙️</div>
         <div class="card-body">
-          <div class="card-title">${esc(d.name)}</div>
-          <div class="card-meta">${(d.exercises||[]).length} exercise${(d.exercises||[]).length!==1?'s':''}</div>
+          <div class="card-title">Settings</div>
+          <div class="card-meta">Backup & Restore</div>
         </div>
         <div class="card-chevron">›</div>
       </div>
-      <div class="card-actions">
-        <button class="icon-btn edit" onclick="startRenameDay('${d.id}')">Edit</button>
-        <button class="icon-btn del" onclick="deleteDay('${d.id}')">Delete</button>
-      </div>
-    </div>`).join('');
+    </div>
+  `;
 }
 
 function createDay(){
@@ -1218,6 +1303,14 @@ document.addEventListener('keydown',e=>{
 if (!history.state) history.replaceState({page: 'dashboard'}, '', '');
 updateThemeBtns();
 renderDash();
+if(localStorage.getItem('gymlog_restore_success') === 'true') {
+  localStorage.removeItem('gymlog_restore_success');
+  toast('Backup restored successfully.', 'success');
+}
 </script>
+<script src="js/helpers.js"></script>
+<script src="js/migrations.js"></script>
+<script src="js/backup.js"></script>
+<script src="js/restore.js"></script>
 </body>
 </html>
