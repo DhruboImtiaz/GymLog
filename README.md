@@ -27,6 +27,12 @@ GymLog is a zero-dependency, single-file Progressive Web App (PWA) for tracking 
 - View a dedicated **progress chart** per measurement type
 - Month/year filtering on measurement charts
 
+### Backup & Restore
+- **Offline Data Portability:** Download your entire workout and measurement history as a JSON backup file.
+- **Robust Migration System:** Ensures backups from older schema versions automatically migrate to the latest format upon restoring.
+- **Safe Imports:** Comprehensive validation checks and automatic rollbacks guarantee that a corrupt or incompatible backup never overwrites your existing data.
+- **Settings Preview:** Inspect exactly what a backup file contains (workout counts, measurement entries, etc.) before confirming restoration.
+
 ### PWA — Installable on Mobile
 - Add to Home Screen on iOS and Android for a native app feel
 - Standalone display mode, portrait orientation locked
@@ -60,7 +66,12 @@ GymLog is a zero-dependency, single-file Progressive Web App (PWA) for tracking 
 ## Project Structure
 
 ```
-├── index.html          # Entire app — markup, styles, and JS in one file
+├── index.html          # Entire app — markup, styles, and core routing logic
+├── js/                 # Modular logic files
+│   ├── backup.js       # Backup generation and dynamic key collection
+│   ├── helpers.js      # Utility functions (downloads, file pickers)
+│   ├── migrations.js   # Centralized data model migration registry
+│   └── restore.js      # Robust restoration, validation, and rollback system
 ├── manifest.json       # PWA manifest (name, icons, display mode)
 ├── _redirects          # SPA redirect rule for Netlify deployment
 ├── icon-192.png        # PWA icon (192×192)
@@ -102,7 +113,7 @@ The app is deployed on **Netlify**. Push to a connected GitHub repo and Netlify 
 
 ## Data Storage
 
-All data is stored in the browser's `localStorage` under a single key as a JSON object with the following shape:
+All data is stored in the browser's `localStorage` under dynamic keys associated with the application (e.g., `gymlog_data`, `gymlog_theme`). The primary structured dataset (`gymlog_data`) uses the following shape:
 
 ```json
 {
@@ -111,13 +122,12 @@ All data is stored in the browser's `localStorage` under a single key as a JSON 
 }
 ```
 
-**No data is ever sent to a server.** Clearing browser storage or uninstalling the PWA will erase all data. Consider exporting/backing up data manually if needed (export feature not yet implemented).
+**No data is ever sent to a server.** Clearing browser storage or uninstalling the PWA will erase all data, making the Backup & Restore feature essential for data preservation across devices.
 
 ---
 
 ## Roadmap / Known Limitations
 
-- [ ] Data export / import (JSON or CSV)
 - [ ] Workout templates / reusable day blueprints
 - [ ] Rest timer
 - [ ] Unit preference (kg vs lbs) — currently per-entry
