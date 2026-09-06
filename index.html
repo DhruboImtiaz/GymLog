@@ -152,9 +152,29 @@ input,textarea{font-family:var(--fb);}
 .card{
   background:var(--bg2);border:1px solid var(--border);
   border-radius:var(--r);box-shadow:var(--sh2);
-  margin-bottom:0.65rem;overflow:hidden;transition:border-color 0.2s;
+  margin-bottom:0.65rem;overflow:hidden;
+  transition:border-color 0.2s, box-shadow 0.2s;
+  position:relative;
+  touch-action:pan-y;
+  user-select:none;-webkit-user-select:none;
 }
-.card-row{display:flex;align-items:center;gap:0.75rem;padding:0.9rem 1rem;}
+.card.is-dragging{
+  z-index:99;opacity:0.96;
+  box-shadow:0 12px 28px rgba(0,0,0,0.6), 0 0 0 1.5px var(--accent);
+  cursor:grabbing;
+}
+.card.is-shifting{
+  transition:transform 0.22s cubic-bezier(0.2,0,0,1);
+}
+.card-row{display:flex;align-items:center;gap:0.65rem;padding:0.85rem 0.95rem;}
+.card-drag-handle{
+  display:flex;align-items:center;justify-content:center;
+  width:24px;height:36px;color:var(--text3);
+  cursor:grab;touch-action:none;flex-shrink:0;
+  transition:color 0.15s,transform 0.15s;
+}
+.card-drag-handle:hover{color:var(--text2);}
+.card-drag-handle:active{cursor:grabbing;color:var(--accent);transform:scale(1.1);}
 .card-clickable{cursor:pointer;}
 .card-clickable:active{background:var(--bg3);}
 .card-icon{
@@ -163,11 +183,26 @@ input,textarea{font-family:var(--fb);}
   font-size:0.85rem;font-weight:800;color:var(--accent);
   font-family:var(--fd);letter-spacing:1px;flex-shrink:0;
 }
-.card-body{flex:1;min-width:0;}
-.card-title{font-weight:600;font-size:0.95rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.card-meta{font-size:0.78rem;color:var(--text2);margin-top:2px;}
+.card-body{flex:1;min-width:0;padding-right:0.25rem;}
+.card-title{
+  font-weight:600;font-size:0.95rem;color:var(--text);
+  white-space:normal;word-break:break-word;overflow-wrap:break-word;
+  line-height:1.35;
+}
+.card-meta{font-size:0.78rem;color:var(--text2);margin-top:2px;line-height:1.3;}
+.card-right-actions{
+  display:flex;align-items:center;gap:0.45rem;flex-shrink:0;margin-left:auto;
+}
+.card-edit-btn{
+  height:32px;padding:0 0.65rem;border-radius:var(--r3);
+  display:inline-flex;align-items:center;justify-content:center;gap:0.3rem;
+  font-size:0.75rem;font-weight:700;
+  background:var(--bg3);color:var(--blue);border:1px solid var(--border2);
+  cursor:pointer;transition:all 0.15s;flex-shrink:0;
+}
+.card-edit-btn:hover{background:var(--bdim);border-color:var(--blue);}
+.card-edit-btn:active{transform:scale(0.92);background:var(--bdim);}
 .card-chevron{color:var(--text3);font-size:1.2rem;flex-shrink:0;}
-.card-actions{display:flex;align-items:center;gap:0.5rem;padding:0.5rem 1rem 0.75rem;border-top:1px solid var(--border);}
 
 /* FORMS */
 .form-group{margin-bottom:1rem;}
@@ -623,14 +658,15 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
 <div class="modal-overlay" id="modalRenameDay" onclick="bgClose(event,'modalRenameDay')">
   <div class="modal-box">
     <div class="modal-header">
-      <span class="modal-title">Rename Day</span>
+      <span class="modal-title">Edit Workout Day</span>
       <button class="modal-close" onclick="closeModal('modalRenameDay')">&#215;</button>
     </div>
     <div class="form-group">
-      <label class="form-label">New Name</label>
+      <label class="form-label">Day Name</label>
       <input type="text" id="inRenameDayName" class="form-input"/>
     </div>
     <div class="modal-actions">
+      <button class="btn btn-danger" onclick="deleteRenamingDay()">Delete</button>
       <button class="btn btn-ghost" onclick="closeModal('modalRenameDay')">Cancel</button>
       <button class="btn btn-primary" onclick="doRenameDay()">Save</button>
     </div>
@@ -657,14 +693,15 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
 <div class="modal-overlay" id="modalRenameExercise" onclick="bgClose(event,'modalRenameExercise')">
   <div class="modal-box">
     <div class="modal-header">
-      <span class="modal-title">Rename Exercise</span>
+      <span class="modal-title">Edit Exercise</span>
       <button class="modal-close" onclick="closeModal('modalRenameExercise')">&#215;</button>
     </div>
     <div class="form-group">
-      <label class="form-label">New Name</label>
+      <label class="form-label">Exercise Name</label>
       <input type="text" id="inRenameExName" class="form-input"/>
     </div>
     <div class="modal-actions">
+      <button class="btn btn-danger" onclick="deleteRenamingEx()">Delete</button>
       <button class="btn btn-ghost" onclick="closeModal('modalRenameExercise')">Cancel</button>
       <button class="btn btn-primary" onclick="doRenameExercise()">Save</button>
     </div>
@@ -691,14 +728,15 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
 <div class="modal-overlay" id="modalRenameMeasurement" onclick="bgClose(event,'modalRenameMeasurement')">
   <div class="modal-box">
     <div class="modal-header">
-      <span class="modal-title">Rename Measurement</span>
+      <span class="modal-title">Edit Measurement</span>
       <button class="modal-close" onclick="closeModal('modalRenameMeasurement')">&#215;</button>
     </div>
     <div class="form-group">
-      <label class="form-label">New Name</label>
+      <label class="form-label">Measurement Name</label>
       <input type="text" id="inRenameMeasName" class="form-input"/>
     </div>
     <div class="modal-actions">
+      <button class="btn btn-danger" onclick="deleteRenamingMeasurement()">Delete</button>
       <button class="btn btn-ghost" onclick="closeModal('modalRenameMeasurement')">Cancel</button>
       <button class="btn btn-primary" onclick="doRenameMeasurement()">Save</button>
     </div>
@@ -894,6 +932,112 @@ function adj(id,amt){
   el.value=v;
 }
 
+// ── DRAG & DROP REORDERING ───────────────
+function enableDragReorder(container, itemsArray, onSave) {
+  if (!container) return;
+  const cards = Array.from(container.children).filter(el => el.classList.contains('card'));
+  if (cards.length < 2) return;
+
+  cards.forEach((card) => {
+    const handle = card.querySelector('.card-drag-handle');
+    if (!handle) return;
+
+    handle.onpointerdown = (e) => {
+      if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const startY = e.clientY;
+      const allCards = Array.from(container.children).filter(el => el.classList.contains('card'));
+      const fromIndex = allCards.indexOf(card);
+      if (fromIndex === -1) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const initialTops = allCards.map(c => c.getBoundingClientRect().top - containerRect.top);
+      const cardHeights = allCards.map(c => c.offsetHeight);
+      const gap = 10;
+
+      let targetIndex = fromIndex;
+
+      try { handle.setPointerCapture(e.pointerId); } catch(err){}
+
+      card.classList.add('is-dragging');
+      allCards.forEach((c, i) => {
+        if (i !== fromIndex) {
+          c.classList.add('is-shifting');
+        }
+      });
+
+      const onPointerMove = (moveEv) => {
+        const deltaY = moveEv.clientY - startY;
+        card.style.transform = `translate3d(0, ${deltaY}px, 0) scale(1.02)`;
+
+        const draggedCenter = initialTops[fromIndex] + (cardHeights[fromIndex] / 2) + deltaY;
+
+        let newTargetIndex = fromIndex;
+        for (let i = 0; i < allCards.length; i++) {
+          if (i === fromIndex) continue;
+          const otherCenter = initialTops[i] + (cardHeights[i] / 2);
+          if (i < fromIndex && draggedCenter < otherCenter) {
+            newTargetIndex = Math.min(newTargetIndex, i);
+          } else if (i > fromIndex && draggedCenter > otherCenter) {
+            newTargetIndex = Math.max(newTargetIndex, i);
+          }
+        }
+
+        targetIndex = Math.max(0, Math.min(allCards.length - 1, newTargetIndex));
+
+        const draggedShiftHeight = cardHeights[fromIndex] + gap;
+
+        allCards.forEach((c, i) => {
+          if (i === fromIndex) return;
+          if (fromIndex < targetIndex && i > fromIndex && i <= targetIndex) {
+            c.style.transform = `translate3d(0, -${draggedShiftHeight}px, 0)`;
+          } else if (fromIndex > targetIndex && i < fromIndex && i >= targetIndex) {
+            c.style.transform = `translate3d(0, ${draggedShiftHeight}px, 0)`;
+          } else {
+            c.style.transform = 'translate3d(0, 0, 0)';
+          }
+        });
+      };
+
+      const onPointerUp = (upEv) => {
+        try { handle.releasePointerCapture(upEv.pointerId); } catch(err){}
+        handle.removeEventListener('pointermove', onPointerMove);
+        handle.removeEventListener('pointerup', onPointerUp);
+        handle.removeEventListener('pointercancel', onPointerUp);
+
+        let finalDelta = 0;
+        if (targetIndex !== fromIndex) {
+          finalDelta = initialTops[targetIndex] - initialTops[fromIndex];
+        }
+
+        card.style.transition = 'transform 0.22s cubic-bezier(0.2, 0, 0, 1)';
+        card.style.transform = `translate3d(0, ${finalDelta}px, 0)`;
+
+        setTimeout(() => {
+          allCards.forEach(c => {
+            c.classList.remove('is-dragging', 'is-shifting');
+            c.style.transform = '';
+            c.style.transition = '';
+          });
+
+          if (targetIndex !== fromIndex) {
+            const reordered = [...itemsArray];
+            const [moved] = reordered.splice(fromIndex, 1);
+            reordered.splice(targetIndex, 0, moved);
+            onSave(reordered);
+          }
+        }, 220);
+      };
+
+      handle.addEventListener('pointermove', onPointerMove);
+      handle.addEventListener('pointerup', onPointerUp);
+      handle.addEventListener('pointercancel', onPointerUp);
+    };
+  });
+}
+
 // ════════════════════════════════════════
 // DASHBOARD
 // ════════════════════════════════════════
@@ -905,20 +1049,30 @@ function renderDash(){
     list.innerHTML=`<div class="empty"><div class="empty-title">No Workout Days Yet</div><p class="empty-text">Create your first workout day to start tracking your training.</p><button class="btn btn-primary btn-lg" onclick="openModal('modalCreateDay')">Create First Day</button></div>`;
   } else {
     list.innerHTML=db.days.map(d=>`
-      <div class="card">
+      <div class="card" data-id="${d.id}">
         <div class="card-row card-clickable" onclick="openDay('${d.id}')">
+          <div class="card-drag-handle" onclick="event.stopPropagation()" title="Hold and drag to move up or down">
+            <svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor"><circle cx="4" cy="3" r="1.5"/><circle cx="10" cy="3" r="1.5"/><circle cx="4" cy="9" r="1.5"/><circle cx="10" cy="9" r="1.5"/><circle cx="4" cy="15" r="1.5"/><circle cx="10" cy="15" r="1.5"/></svg>
+          </div>
           <div class="card-icon">${esc(d.name.slice(0,2).toUpperCase())}</div>
           <div class="card-body">
             <div class="card-title">${esc(d.name)}</div>
             <div class="card-meta">${(d.exercises||[]).length} exercise${(d.exercises||[]).length!==1?'s':''}</div>
           </div>
-          <div class="card-chevron">›</div>
-        </div>
-        <div class="card-actions">
-          <button class="icon-btn edit" onclick="startRenameDay('${d.id}')">Edit</button>
-          <button class="icon-btn del" onclick="deleteDay('${d.id}')">Delete</button>
+          <div class="card-right-actions">
+            <button class="card-edit-btn" onclick="event.stopPropagation(); startRenameDay('${d.id}')" title="Edit Day">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              <span>Edit</span>
+            </button>
+            <div class="card-chevron">›</div>
+          </div>
         </div>
       </div>`).join('');
+    enableDragReorder(list, db.days, (newOrder) => {
+      db.days = newOrder;
+      save(db);
+      renderDash();
+    });
   }
 }
 
@@ -932,6 +1086,7 @@ function createDay(){
 let _renDayId=null;
 function startRenameDay(id){ _renDayId=id; const d=load().days.find(d=>d.id===id); if(!d) return; document.getElementById('inRenameDayName').value=d.name; openModal('modalRenameDay'); }
 function doRenameDay(){ const name=document.getElementById('inRenameDayName').value.trim(); if(!name) return; const db=load(),d=db.days.find(d=>d.id===_renDayId); if(d) d.name=name; save(db); closeModal('modalRenameDay'); toast('Day renamed'); renderDash(); }
+async function deleteRenamingDay(){ const id=_renDayId; closeModal('modalRenameDay'); if(id) await deleteDay(id); }
 
 async function deleteDay(id){ const ok=await confirm2('Delete this workout day and all its exercises? This cannot be undone.'); if(!ok) return; const db=load(); db.days=db.days.filter(d=>d.id!==id); save(db); toast('Deleted','error'); renderDash(); }
 
@@ -949,20 +1104,30 @@ function renderDay(){
     return;
   }
   list.innerHTML=day.exercises.map(ex=>`
-    <div class="card">
+    <div class="card" data-id="${ex.id}">
       <div class="card-row card-clickable" onclick="openEx('${ex.id}')">
+        <div class="card-drag-handle" onclick="event.stopPropagation()" title="Hold and drag to move up or down">
+          <svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor"><circle cx="4" cy="3" r="1.5"/><circle cx="10" cy="3" r="1.5"/><circle cx="4" cy="9" r="1.5"/><circle cx="10" cy="9" r="1.5"/><circle cx="4" cy="15" r="1.5"/><circle cx="10" cy="15" r="1.5"/></svg>
+        </div>
         <div class="card-icon" style="background:var(--gdim);color:var(--green);">${esc(ex.name.slice(0,2).toUpperCase())}</div>
         <div class="card-body">
           <div class="card-title">${esc(ex.name)}</div>
           <div class="card-meta">${(ex.sets||[]).length} set${(ex.sets||[]).length!==1?'s':''} today · ${(ex.history||[]).length} session${(ex.history||[]).length!==1?'s':''} logged</div>
         </div>
-        <div class="card-chevron">›</div>
-      </div>
-      <div class="card-actions">
-        <button class="icon-btn edit" onclick="startRenameEx('${ex.id}')">Edit</button>
-        <button class="icon-btn del" onclick="deleteEx('${ex.id}')">Delete</button>
+        <div class="card-right-actions">
+          <button class="card-edit-btn" onclick="event.stopPropagation(); startRenameEx('${ex.id}')" title="Edit Exercise">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span>Edit</span>
+          </button>
+          <div class="card-chevron">›</div>
+        </div>
       </div>
     </div>`).join('');
+  enableDragReorder(list, day.exercises, (newOrder) => {
+    day.exercises = newOrder;
+    save(db);
+    renderDay();
+  });
 }
 
 function addExercise(){
@@ -977,6 +1142,7 @@ function addExercise(){
 let _renExId=null;
 function startRenameEx(id){ _renExId=id; const db=load(),day=db.days.find(d=>d.id===curDayId),ex=(day?.exercises||[]).find(e=>e.id===id); if(!ex) return; document.getElementById('inRenameExName').value=ex.name; openModal('modalRenameExercise'); }
 function doRenameExercise(){ const name=document.getElementById('inRenameExName').value.trim(); if(!name) return; const db=load(),day=db.days.find(d=>d.id===curDayId),ex=(day?.exercises||[]).find(e=>e.id===_renExId); if(ex) ex.name=name; save(db); closeModal('modalRenameExercise'); toast('Renamed'); renderDay(); }
+async function deleteRenamingEx(){ const id=_renExId; closeModal('modalRenameExercise'); if(id) await deleteEx(id); }
 
 async function deleteEx(id){ const ok=await confirm2('Delete this exercise and all its sets and history?'); if(!ok) return; const db=load(),day=db.days.find(d=>d.id===curDayId); if(day) day.exercises=(day.exercises||[]).filter(e=>e.id!==id); save(db); toast('Deleted','error'); renderDay(); }
 
@@ -1187,20 +1353,30 @@ function renderMeasurements(){
     return;
   }
   list.innerHTML=(db.measurements||[]).map(m=>`
-    <div class="card">
+    <div class="card" data-id="${m.id}">
       <div class="card-row card-clickable" onclick="openMeasurement('${m.id}')">
+        <div class="card-drag-handle" onclick="event.stopPropagation()" title="Hold and drag to move up or down">
+          <svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor"><circle cx="4" cy="3" r="1.5"/><circle cx="10" cy="3" r="1.5"/><circle cx="4" cy="9" r="1.5"/><circle cx="10" cy="9" r="1.5"/><circle cx="4" cy="15" r="1.5"/><circle cx="10" cy="15" r="1.5"/></svg>
+        </div>
         <div class="card-icon">${esc(m.name.slice(0,2).toUpperCase())}</div>
         <div class="card-body">
           <div class="card-title">${esc(m.name)}</div>
           <div class="card-meta">${(m.entries||[]).length} entr${(m.entries||[]).length!==1?'ies':'y'}</div>
         </div>
-        <div class="card-chevron">›</div>
-      </div>
-      <div class="card-actions">
-        <button class="icon-btn edit" onclick="startRenameMeasurement('${m.id}')">Edit</button>
-        <button class="icon-btn del" onclick="deleteMeasurement('${m.id}')">Delete</button>
+        <div class="card-right-actions">
+          <button class="card-edit-btn" onclick="event.stopPropagation(); startRenameMeasurement('${m.id}')" title="Edit Measurement">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span>Edit</span>
+          </button>
+          <div class="card-chevron">›</div>
+        </div>
       </div>
     </div>`).join('');
+  enableDragReorder(list, db.measurements, (newOrder) => {
+    db.measurements = newOrder;
+    save(db);
+    renderMeasurements();
+  });
 }
 
 function createMeasurement(){
@@ -1214,6 +1390,7 @@ function createMeasurement(){
 let _renMeasId=null;
 function startRenameMeasurement(id){ _renMeasId=id; const db=load(), m=(db.measurements||[]).find(m=>m.id===id); if(!m) return; document.getElementById('inRenameMeasName').value=m.name; openModal('modalRenameMeasurement'); }
 function doRenameMeasurement(){ const name=document.getElementById('inRenameMeasName').value.trim(); if(!name) return; const db=load(), m=(db.measurements||[]).find(m=>m.id===_renMeasId); if(m) m.name=name; save(db); closeModal('modalRenameMeasurement'); toast('Renamed'); renderMeasurements(); }
+async function deleteRenamingMeasurement(){ const id=_renMeasId; closeModal('modalRenameMeasurement'); if(id) await deleteMeasurement(id); }
 async function deleteMeasurement(id){ const ok=await confirm2('Delete this measurement and all its entries?'); if(!ok) return; const db=load(); db.measurements=(db.measurements||[]).filter(m=>m.id!==id); save(db); toast('Deleted','error'); renderMeasurements(); }
 
 function openMeasurement(id){ curMeasId=id; goTo('measurementDetail'); }
