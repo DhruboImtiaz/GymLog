@@ -61,7 +61,7 @@ input,textarea{font-family:var(--fb);}
   padding:0 1rem;padding-top:var(--safe-top);
 }
 [data-theme="light"] .navbar{background:rgba(242,242,242,0.93);}
-.nav-brand{font-family:var(--fd);font-size:1.6rem;letter-spacing:3px;color:var(--accent);cursor:pointer;}
+.nav-brand{font-family:var(--fd);font-size:26px;line-height:1;letter-spacing:3px;color:var(--accent);cursor:pointer;}
 .nav-right{display:flex;align-items:center;gap:0.75rem;}
 .theme-btn{
   background:var(--bg3);border:1px solid var(--border2);border-radius:20px;
@@ -749,6 +749,35 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
       <span class="modal-title">Settings</span>
       <button class="modal-close" onclick="closeModal('modalSettings')">&#215;</button>
     </div>
+    <div class="section-header" style="margin-top:0;">
+      <span class="section-title">Appearance</span>
+    </div>
+    <div class="card" style="margin-bottom:1.25rem; padding:1rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+        <div>
+          <div style="font-weight:600; font-size:0.95rem; color:var(--text);">Font Size</div>
+          <div style="font-size:0.8rem; color:var(--text2); margin-top:2px;">Adjust text and interface scale</div>
+        </div>
+        <span id="fontSizeDisplay" style="font-weight:700; font-size:0.8rem; color:var(--accent); background:var(--adim); padding:0.2rem 0.55rem; border-radius:var(--r3);">100%</span>
+      </div>
+
+      <!-- Presets -->
+      <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:0.35rem; margin-bottom:0.85rem;">
+        <button class="btn btn-xs btn-secondary" id="fsize-xs" onclick="setFontSize(12)">XS</button>
+        <button class="btn btn-xs btn-secondary" id="fsize-sm" onclick="setFontSize(14)">Small</button>
+        <button class="btn btn-xs btn-secondary" id="fsize-md" onclick="setFontSize(16)">Default</button>
+        <button class="btn btn-xs btn-secondary" id="fsize-lg" onclick="setFontSize(18)">Large</button>
+        <button class="btn btn-xs btn-secondary" id="fsize-xl" onclick="setFontSize(20)">XL</button>
+      </div>
+
+      <!-- Slider Control -->
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <span style="font-size:0.7rem; font-weight:700; color:var(--text3);">A</span>
+        <input type="range" id="fontSizeSlider" min="12" max="22" step="1" value="16" style="flex:1; accent-color:var(--accent); cursor:pointer;" oninput="setFontSize(this.value)"/>
+        <span style="font-size:1.15rem; font-weight:700; color:var(--text);">A</span>
+      </div>
+    </div>
+
     <div class="section-header">
       <span class="section-title">Data</span>
     </div>
@@ -887,10 +916,46 @@ function updateThemeBtns(){
     const el=document.getElementById(id); if(el) el.textContent=lbl;
   });
 }
+// ── FONT SIZE ────────────────────────────
+function setFontSize(size) {
+  const px = Math.min(24, Math.max(12, parseInt(size, 10) || 16));
+  document.documentElement.style.fontSize = px + 'px';
+  localStorage.setItem('gymlog_font_size', px);
+
+  const slider = document.getElementById('fontSizeSlider');
+  if (slider) slider.value = px;
+
+  const disp = document.getElementById('fontSizeDisplay');
+  if (disp) {
+    const pct = Math.round((px / 16) * 100);
+    disp.textContent = pct + '% (' + px + 'px)';
+  }
+
+  ['xs', 'sm', 'md', 'lg', 'xl'].forEach(k => {
+    const btn = document.getElementById('fsize-' + k);
+    if (btn) {
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-secondary');
+    }
+  });
+  if (px <= 12) document.getElementById('fsize-xs')?.classList.replace('btn-secondary', 'btn-primary');
+  else if (px <= 14) document.getElementById('fsize-sm')?.classList.replace('btn-secondary', 'btn-primary');
+  else if (px === 16) document.getElementById('fsize-md')?.classList.replace('btn-secondary', 'btn-primary');
+  else if (px === 18) document.getElementById('fsize-lg')?.classList.replace('btn-secondary', 'btn-primary');
+  else if (px >= 20) document.getElementById('fsize-xl')?.classList.replace('btn-secondary', 'btn-primary');
+}
+
+function initFontSize() {
+  const saved = localStorage.getItem('gymlog_font_size');
+  if (saved) setFontSize(parseInt(saved, 10));
+  else setFontSize(16);
+}
+
 (function(){
   const t=localStorage.getItem('gymlog_theme')||'dark';
   document.documentElement.setAttribute('data-theme',t);
   document.getElementById('themeColor').content=t==='dark'?'#0a0a0a':'#f2f2f2';
+  initFontSize();
 })();
 
 // ── TOAST ────────────────────────────────
@@ -914,6 +979,10 @@ function confirm2(msg){
 // ── MODALS ───────────────────────────────
 function openModal(id){
   document.getElementById(id).classList.add('open');
+  if (id === 'modalSettings') {
+    const currentPx = parseInt(localStorage.getItem('gymlog_font_size') || 16, 10);
+    setFontSize(currentPx);
+  }
   const inp=document.querySelector('#'+id+' input, #'+id+' textarea');
   if(inp) setTimeout(()=>inp.focus(),80);
 }
