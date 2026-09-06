@@ -204,6 +204,24 @@ input,textarea{font-family:var(--fb);}
 .card-edit-btn:active{transform:scale(0.92);background:var(--bdim);}
 .card-chevron{color:var(--text3);font-size:1.2rem;flex-shrink:0;}
 
+/* DATE SELECTOR */
+.date-selector{
+  display:flex;gap:0.35rem;background:var(--bg3);
+  padding:3px;border-radius:var(--r2);border:1.5px solid var(--border2);
+  margin-bottom:0.85rem;
+}
+.date-btn{
+  flex:1;height:32px;border-radius:var(--r3);
+  font-size:0.75rem;font-weight:700;color:var(--text2);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all 0.15s;border:none;background:transparent;
+  white-space:nowrap;user-select:none;-webkit-user-select:none;
+}
+.date-btn:hover{color:var(--text);}
+.date-btn.active{
+  background:var(--accent);color:#fff;box-shadow:var(--sh2);
+}
+
 /* FORMS */
 .form-group{margin-bottom:1rem;}
 .form-label{display:block;font-size:0.73rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:0.4rem;}
@@ -459,13 +477,18 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
     </div>
     <div id="lastSessionCard"></div>
     <div class="section-header">
-      <span class="section-title">Today's Sets</span>
+      <span class="section-title" id="exSetsTitle">Today's Sets</span>
       <span class="section-badge" id="setBadge">0 sets</span>
     </div>
     <div id="setsList" class="sets-list"></div>
     <p id="noSets" style="color:var(--text2);font-size:0.875rem;text-align:center;padding:0.75rem 0 1rem;display:none;">No sets yet — log one below.</p>
     <div class="add-card">
       <div class="add-title">Log a Set</div>
+      <div class="date-selector" id="exDateSelector">
+        <button type="button" class="date-btn active" id="exDate0" onclick="setExDateOffset(0)">Today</button>
+        <button type="button" class="date-btn" id="exDate1" onclick="setExDateOffset(1)">Yesterday</button>
+        <button type="button" class="date-btn" id="exDate2" onclick="setExDateOffset(2)">2 Days Ago</button>
+      </div>
       <div class="add-grid">
         <div class="input-group">
           <label class="input-label">Reps</label>
@@ -488,7 +511,7 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
       <button class="btn btn-primary btn-full" onclick="addSet()">Log Set</button>
     </div>
     <div id="saveSection" style="display:none;margin-bottom:1rem;">
-      <button class="btn btn-success btn-full btn-lg" onclick="saveSession()">Save Workout to History</button>
+      <button class="btn btn-success btn-full btn-lg" id="btnSaveSession" onclick="saveSession()">Save Workout to History</button>
     </div>
   </div>
 </div>
@@ -502,7 +525,7 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
       <button class="settings-btn" onclick="openModal('modalSettings')" aria-label="Settings" title="Settings">
         <svg class="settings-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l-.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
       </button>
     </div>
@@ -527,18 +550,18 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
       <button class="settings-btn" onclick="openModal('modalSettings')" aria-label="Settings" title="Settings">
         <svg class="settings-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l-.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
       </button>
     </div>
   </nav>
   <div class="content">
     <div class="page-header">
-      <div class="page-header-left">
-        <div class="page-title">Measurements</div>
-        <div class="page-sub">Track your body metrics</div>
+      <div>
+        <div class="page-title">Body Measurements</div>
+        <div class="page-sub">Track body size and composition</div>
       </div>
-      <button class="btn btn-primary" onclick="openModal('modalCreateMeasurement')">+ New</button>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modalCreateMeasurement')">+ New Metric</button>
     </div>
     <div id="measurementsList"></div>
   </div>
@@ -553,7 +576,7 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
       <button class="settings-btn" onclick="openModal('modalSettings')" aria-label="Settings" title="Settings">
         <svg class="settings-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l-.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
       </button>
     </div>
@@ -574,6 +597,11 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
     <p id="noMeasEntries" style="color:var(--text2);font-size:0.875rem;text-align:center;padding:0.75rem 0 1rem;display:none;">No entries yet — log one below.</p>
     <div class="add-card">
       <div class="add-title">Log a Measurement</div>
+      <div class="date-selector" id="measDateSelector">
+        <button type="button" class="date-btn active" id="measDate0" onclick="setMeasDateOffset(0)">Today</button>
+        <button type="button" class="date-btn" id="measDate1" onclick="setMeasDateOffset(1)">Yesterday</button>
+        <button type="button" class="date-btn" id="measDate2" onclick="setMeasDateOffset(2)">2 Days Ago</button>
+      </div>
       <div class="add-grid">
         <div class="input-group">
           <label class="input-label">Value</label>
@@ -1220,6 +1248,40 @@ function openEx(id){ curExId=id; goTo('exercise'); }
 // ════════════════════════════════════════
 // EXERCISE PAGE
 // ════════════════════════════════════════
+let _exDateOffset = 0;
+let _measDateOffset = 0;
+
+function getDateOffsetIso(daysBack = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysBack);
+  return d.toISOString().slice(0, 10);
+}
+
+function setExDateOffset(offset) {
+  _exDateOffset = offset;
+  [0, 1, 2].forEach(i => {
+    const btn = document.getElementById('exDate' + i);
+    if (btn) btn.classList.toggle('active', i === offset);
+  });
+  const lbl = offset === 0 ? "Today's Sets" : offset === 1 ? "Yesterday's Sets" : "Sets for 2 Days Ago";
+  const titleEl = document.getElementById('exSetsTitle');
+  if (titleEl) titleEl.textContent = lbl;
+
+  const saveBtn = document.getElementById('btnSaveSession');
+  if (saveBtn) {
+    const saveLbl = offset === 0 ? "Today" : offset === 1 ? "Yesterday" : "2 Days Ago";
+    saveBtn.textContent = `Save ${saveLbl}'s Workout to History`;
+  }
+}
+
+function setMeasDateOffset(offset) {
+  _measDateOffset = offset;
+  [0, 1, 2].forEach(i => {
+    const btn = document.getElementById('measDate' + i);
+    if (btn) btn.classList.toggle('active', i === offset);
+  });
+}
+
 function getEx(){ const db=load(),day=db.days.find(d=>d.id===curDayId); return (day?.exercises||[]).find(e=>e.id===curExId); }
 
 function renderEx(){
@@ -1227,6 +1289,8 @@ function renderEx(){
   const db=load(),day=db.days.find(d=>d.id===curDayId);
   document.getElementById('exTitle').textContent=ex.name;
   document.getElementById('exBack').textContent='‹ '+(day?.name||'Back');
+
+  setExDateOffset(_exDateOffset);
 
   // Last session suggestion
   const hist=ex.history||[];
@@ -1312,9 +1376,15 @@ function saveSession(){
   const db=load(),day=db.days.find(d=>d.id===curDayId),ex=(day?.exercises||[]).find(e=>e.id===curExId);
   if(!ex||(ex.sets||[]).length===0) return;
   if(!ex.history) ex.history=[];
-  ex.history.push({id:uid(),date:today(),sets:ex.sets.map(s=>({num:s.num,reps:s.reps,weight:s.weight}))});
+  const logDate = getDateOffsetIso(_exDateOffset);
+  ex.history.push({id:uid(),date:logDate,sets:ex.sets.map(s=>({num:s.num,reps:s.reps,weight:s.weight}))});
+  ex.history.sort((a,b)=>a.date.localeCompare(b.date));
   ex.sets=[];
-  save(db); toast('Workout saved to history!'); renderEx();
+  save(db);
+  const dateLbl = _exDateOffset === 0 ? 'Today' : _exDateOffset === 1 ? 'Yesterday' : '2 days ago';
+  toast(`Workout saved for ${dateLbl}!`);
+  _exDateOffset = 0;
+  renderEx();
 }
 
 // ════════════════════════════════════════
@@ -1468,12 +1538,14 @@ function renderMeasurementDetail(){
   const db=load(), m=(db.measurements||[]).find(x=>x.id===curMeasId); if(!m){goTo('measurements');return;}
   document.getElementById('measTitle').textContent=m.name;
   
+  setMeasDateOffset(_measDateOffset);
+
   const entries=m.entries||[];
   document.getElementById('measBadge').textContent=entries.length+' entr'+(entries.length!==1?'ies':'y');
   const noMeasEntries=document.getElementById('noMeasEntries');
   const list=document.getElementById('measEntriesList');
   noMeasEntries.style.display=entries.length?'none':'block';
-  list.innerHTML=[...entries].reverse().map((e)=>`
+  list.innerHTML=[...entries].sort((a,b)=>a.date.localeCompare(b.date)).reverse().map((e)=>`
     <div class="set-row">
       <div class="set-badge" style="width:auto;padding:0 0.5rem;border-radius:var(--r3);background:var(--adim);color:var(--accent);font-weight:700;font-size:0.8rem;">${fmt(e.date).split(' ')[0]} ${fmt(e.date).split(' ')[1].replace(',','')}</div>
       <div class="set-info">
@@ -1491,10 +1563,14 @@ function addMeasurementEntry(){
   if(isNaN(val)){toast('Enter valid value','error');return;}
   const db=load(), m=(db.measurements||[]).find(x=>x.id===curMeasId); if(!m) return;
   if(!m.entries) m.entries=[];
-  m.entries.push({id:uid(),date:today(),value:val,unit});
+  const logDate = getDateOffsetIso(_measDateOffset);
+  m.entries.push({id:uid(),date:logDate,value:val,unit});
+  m.entries.sort((a,b)=>a.date.localeCompare(b.date));
   save(db);
   document.getElementById('inMeasValue').value='';
-  toast('Entry logged'); renderMeasurementDetail();
+  const dateLbl = _measDateOffset === 0 ? 'Today' : _measDateOffset === 1 ? 'Yesterday' : '2 days ago';
+  toast(`Entry logged for ${dateLbl}!`);
+  renderMeasurementDetail();
 }
 
 async function deleteMeasurementEntry(id){
