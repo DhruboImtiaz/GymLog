@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getGymLogData, saveGymLogData } from '../storage/storage';
-import { uid, today } from '../utils/helpers';
+import { uid, today, getDateOffsetIso } from '../utils/helpers';
 
 const DataContext = createContext();
 
@@ -109,6 +109,133 @@ export function DataProvider({ children }) {
     saveAndSetData(newData);
   }, [data, saveAndSetData]);
 
+  // Set Operations
+  const addSet = useCallback((dayId, exId, reps, weight) => {
+    if (!reps || reps < 1 || isNaN(weight) || weight < 0 || !data) return;
+    const newData = {
+      ...data,
+      days: data.days.map(day => {
+        if (day.id !== dayId) return day;
+        return {
+          ...day,
+          exercises: (day.exercises || []).map(ex => {
+            if (ex.id !== exId) return ex;
+            const currentSets = ex.sets || [];
+            return {
+              ...ex,
+              sets: [
+                ...currentSets,
+                { id: uid(), num: currentSets.length + 1, reps, weight }
+              ]
+            };
+          })
+        };
+      })
+    };
+    saveAndSetData(newData);
+  }, [data, saveAndSetData]);
+
+  const updateSet = useCallback((dayId, exId, setId, reps, weight) => {
+    if (!reps || isNaN(weight) || !data) return;
+    const newData = {
+      ...data,
+      days: data.days.map(day => {
+        if (day.id !== dayId) return day;
+        return {
+          ...day,
+          exercises: (day.exercises || []).map(ex => {
+            if (ex.id !== exId) return ex;
+            return {
+              ...ex,
+              sets: (ex.sets || []).map(s => 
+                s.id === setId ? { ...s, reps, weight } : s
+              )
+            };
+          })
+        };
+      })
+    };
+    saveAndSetData(newData);
+  }, [data, saveAndSetData]);
+
+  const deleteSet = useCallback((dayId, exId, setId) => {
+    if (!data) return;
+    const newData = {
+      ...data,
+      days: data.days.map(day => {
+        if (day.id !== dayId) return day;
+        return {
+          ...day,
+          exercises: (day.exercises || []).map(ex => {
+            if (ex.id !== exId) return ex;
+            
+            // Filter out the deleted set and renumber remaining sequentially
+            const newSets = (ex.sets || [])
+              .filter(s => s.id !== setId)
+              .map((s, index) => ({ ...s, num: index + 1 }));
+
+            return {
+              ...ex,
+              sets: newSets
+            };
+          })
+        };
+      })
+    };
+    saveAndSetData(newData);
+  }, [data, saveAndSetData]);
+
+  const saveSession = useCallback((dayId, exId, dateOffset) => {
+    if (!data) return;
+    
+    const day = data.days.find(d => d.id === dayId);
+    if (!day) return;
+    
+    const ex = (day.exercises || []).find(e => e.id === exId);
+    if (!ex || !ex.sets || ex.sets.length === 0) return;
+
+    const logDate = getDateOffsetIso(dateOffset);
+    
+    // Map existing sets and remove the ID property to strictly match vanilla behavior
+    const historySets = ex.sets.map(s => ({
+      num: s.num,
+      reps: s.reps,
+      weight: s.weight
+    }));
+
+    const sessionObj = {
+      id: uid(),
+      date: logDate,
+      sets: historySets
+    };
+
+    const newData = {
+      ...data,
+      days: data.days.map(d => {
+        if (d.id !== dayId) return d;
+        return {
+          ...d,
+          exercises: (d.exercises || []).map(e => {
+            if (e.id !== exId) return e;
+            
+            // Push new history and sort chronologically
+            const newHistory = [...(e.history || []), sessionObj].sort((a, b) => 
+              a.date.localeCompare(b.date)
+            );
+
+            return {
+              ...e,
+              history: newHistory,
+              sets: [] // Clear active sets
+            };
+          })
+        };
+      })
+    };
+    saveAndSetData(newData);
+  }, [data, saveAndSetData]);
+
+
   const value = {
     data,
     isMalformed,
@@ -117,7 +244,11 @@ export function DataProvider({ children }) {
     deleteDay,
     addExercise,
     renameExercise,
-    deleteExercise
+    deleteExercise,
+    addSet,
+    updateSet,
+    deleteSet,
+    saveSession
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

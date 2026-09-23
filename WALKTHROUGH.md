@@ -99,3 +99,31 @@ This sets up the functional skeleton of the application, connecting the foundati
 - Progress chart migrations.
 - Drag-and-drop state wiring.
 - Backup/restore logic bridging.
+
+## Stage 4 — Workout Set Logging & Exercise History
+
+### 1. What was implemented
+- **Exercise Detail Page:** Fully realized React `ExerciseDetail` page replacing the Stage 3 placeholder.
+- **Set Logging (`AddSetForm`):** Implemented an immutable `addSet` mutation replicating vanilla data structures. Created a custom `NumberInput` replicating the quick-adjust `adj()` behavior.
+- **Inline Editing (`SetRow`):** Developed a component-level state toggle to edit set reps and weight inline, persisting back to localStorage upon save.
+- **Set Deletion:** Successfully reproduced the complex vanilla deletion logic that sequentially re-calculates the `num` property for all remaining sets below the deleted row.
+- **Date Selection & Session Saving:** Ported the exact 0/1/2 offset date logic. Built `saveSession` which maps active sets, strips the volatile `id` field from historical records, sorts them chronologically, appends them to `history`, and empties the active sets list.
+- **History Rendering:** Created `LastSessionCard` to parse the chronological `history` array and render previous workouts exactly like the vanilla DOM injection.
+
+### 2. Architecture decisions
+- **Split State Boundaries:** Deep persistence mutations strictly live in `DataContext` ensuring `gymlog_data` is always handled immutably. However, transient unsubmitted UI states (like the typing values of inline editing or the `NumberInput` intermediate decimals) live strictly in local component state. This prevents aggressive localStorage thrashing on every keystroke.
+- **No Global History Context:** History parsing and date offsetting is managed locally within `ExerciseDetail`, keeping global context lightweight.
+
+### 3. Data flow & Persistence
+- Forms collect inputs locally -> Validate -> Call Context function (`addSet`, `saveSession`) -> Context executes deep immutable copy (`...ex.sets`) -> Context triggers `saveGymLogData` synchronously -> React automatically pushes new state down to re-render.
+- `saveSession` specifically extracts `num, reps, weight` into independent objects to guarantee no references remain tied to the active array, protecting historical integrity when active sets are cleared.
+
+### 4. Testing & Legacy Validation
+- Loaded existing GymLog vanilla `localStorage` data; verified historical records rendered perfectly.
+- Confirmed rapid additions auto-increment set numbers.
+- Confirmed deleting Set 2 out of 3 dynamically shifts Set 3 to become Set 2.
+- Verified Session Saving correctly clears active state and updates the Last Workout card.
+
+### 5. Known limitations
+- Progress charts and Measurement views remain pending for later stages.
+- No Drag-and-drop implemented yet for reordering sets/exercises.
