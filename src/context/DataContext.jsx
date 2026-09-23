@@ -235,6 +235,76 @@ export function DataProvider({ children }) {
     saveAndSetData(newData);
   }, [data, saveAndSetData]);
 
+  // Measurement Operations
+  const createMeasurement = useCallback((name) => {
+    if (!name || !data) return;
+    const newData = {
+      ...data,
+      measurements: [
+        ...(data.measurements || []),
+        { id: uid(), name, createdAt: today(), entries: [] }
+      ]
+    };
+    saveAndSetData(newData);
+  }, [data, saveAndSetData]);
+
+  const renameMeasurement = useCallback((id, newName) => {
+    if (!newName || !data) return;
+    const newData = {
+      ...data,
+      measurements: (data.measurements || []).map(m => 
+        m.id === id ? { ...m, name: newName } : m
+      )
+    };
+    saveAndSetData(newData);
+  }, [data, saveAndSetData]);
+
+  const deleteMeasurement = useCallback((id) => {
+    if (!data) return;
+    const newData = {
+      ...data,
+      measurements: (data.measurements || []).filter(m => m.id !== id)
+    };
+    saveAndSetData(newData);
+  }, [data, saveAndSetData]);
+
+  const addMeasurementEntry = useCallback((measId, value, unit, dateOffset) => {
+    if (isNaN(value) || !data) return;
+    const logDate = getDateOffsetIso(dateOffset);
+    const newEntry = { id: uid(), date: logDate, value, unit };
+
+    const newData = {
+      ...data,
+      measurements: (data.measurements || []).map(m => {
+        if (m.id !== measId) return m;
+        // Add entry and sort chronologically ascending exactly like vanilla
+        const newEntries = [...(m.entries || []), newEntry].sort((a, b) => 
+          a.date.localeCompare(b.date)
+        );
+        return {
+          ...m,
+          entries: newEntries
+        };
+      })
+    };
+    saveAndSetData(newData);
+  }, [data, saveAndSetData]);
+
+  const deleteMeasurementEntry = useCallback((measId, entryId) => {
+    if (!data) return;
+    const newData = {
+      ...data,
+      measurements: (data.measurements || []).map(m => {
+        if (m.id !== measId) return m;
+        return {
+          ...m,
+          entries: (m.entries || []).filter(e => e.id !== entryId)
+        };
+      })
+    };
+    saveAndSetData(newData);
+  }, [data, saveAndSetData]);
+
 
   const value = {
     data,
@@ -248,7 +318,12 @@ export function DataProvider({ children }) {
     addSet,
     updateSet,
     deleteSet,
-    saveSession
+    saveSession,
+    createMeasurement,
+    renameMeasurement,
+    deleteMeasurement,
+    addMeasurementEntry,
+    deleteMeasurementEntry
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

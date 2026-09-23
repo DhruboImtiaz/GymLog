@@ -127,3 +127,30 @@ This sets up the functional skeleton of the application, connecting the foundati
 ### 5. Known limitations
 - Progress charts and Measurement views remain pending for later stages.
 - No Drag-and-drop implemented yet for reordering sets/exercises.
+
+## Stage 5 — Measurements
+
+### 1. What was implemented
+- **Measurement Dashboard:** Created `Measurements.jsx` which perfectly replaces the `#pageMeasurements` view. It pulls the measurements array from context, renders cards, and manages local modal state for creating and renaming measurements.
+- **Measurement Detail:** Created `MeasurementDetail.jsx` mapping to `/measurements/:measId`. It reuses the exact vanilla badge and layout styling to render entries in descending chronological order.
+- **Entry Logging:** Implemented forms inside `MeasurementDetail` to capture numeric values and string units, calculating dates identically to the Exercises view.
+- **Data Deletion:** Integrated exact vanilla deletion behaviors with `window.confirm` for both complete measurements and individual entries.
+
+### 2. Architecture decisions
+- **Context vs Component State:** Following the Stage 4 pattern, transient form state (modal text fields, new entry values) is kept locally within the page components. When "Save" or "Create" is clicked, it dispatches an immutable mutation to `DataContext` which synchronously writes to `localStorage`.
+- **Date Management:** Re-used `DateSelector.jsx` from the exercises feature since the `0 / 1 / 2` offset logic perfectly applies to both domains.
+
+### 3. Data flow & Persistence
+- **Chronological Guarantee:** In vanilla, `measurements[].entries` were sorted strictly ascending by ISO date string on every insertion. The React `addMeasurementEntry` mutation perfectly replicates this by deep-copying the array and running `.sort((a,b) => a.date.localeCompare(b.date))` before saving, guaranteeing the underlying JSON schema is identical to vanilla.
+- **Display Reversal:** To match vanilla UX, `MeasurementDetail` takes the chronologically ascending array from context and maps a `.reverse()` copy for the UI to place the newest entries at the top.
+
+### 4. Testing & Legacy Validation
+- Loaded existing GymLog vanilla `localStorage` data; verified measurement records and past entries rendered perfectly.
+- Verified adding a new measurement.
+- Verified renaming a measurement mutates only the specified `m.name`.
+- Verified deletion of a measurement properly filters it out.
+- Verified logging an entry for "Yesterday" properly inserted it in the middle of the JSON array chronologically, but rendered it appropriately in the UI.
+
+### 5. Known limitations
+- **Measurement Progress Charts:** Explicitly deferred to Stage 6 (Data Visualization) alongside Exercise Progress Charts to prevent fragmented architectural dependencies on `chart.js`.
+- **Drag-and-Drop Reordering:** Explicitly deferred to a later Stage. The array retains its legacy ordering and rendering faithfully.

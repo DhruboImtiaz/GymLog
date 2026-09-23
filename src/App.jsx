@@ -6,6 +6,9 @@ import WorkoutDay from './pages/WorkoutDay';
 import ExerciseDetail from './pages/ExerciseDetail';
 import { BottomNav } from './components/navigation/BottomNav';
 
+import Measurements from './pages/Measurements';
+import MeasurementDetail from './pages/MeasurementDetail';
+
 function App() {
   const { isMalformed, data } = useGymLogData();
 
@@ -29,15 +32,8 @@ function App() {
         <Route path="/day/:dayId" element={<WorkoutDay />} />
         <Route path="/day/:dayId/exercise/:exerciseId" element={<ExerciseDetail />} />
         
-        {/* Placeholder for measurements route so bottom nav works visually */}
-        <Route path="/measurements" element={
-          <div className="page active" style={{ display: 'block' }}>
-            <div className="content empty">
-              <h1 className="empty-title">Measurements</h1>
-              <p className="empty-text">Implementation planned for future stages.</p>
-            </div>
-          </div>
-        } />
+        <Route path="/measurements" element={<Measurements />} />
+        <Route path="/measurements/:measId" element={<MeasurementDetail />} />
       </Routes>
       <BottomNav />
     </>
