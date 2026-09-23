@@ -111,8 +111,8 @@ export default function ExerciseDetail() {
         {sets.length > 0 && (
           <div id="saveSection" style={{ marginTop: '20px' }}>
             <button 
-              className="btn btn-primary btn-lg" 
-              style={{ width: '100%', marginBottom: '15px' }} 
+              className="btn btn-success btn-full btn-lg" 
+              style={{ marginBottom: '15px' }} 
               onClick={handleSaveSession}
             >
               Save {saveBtnLbl}'s Workout to History

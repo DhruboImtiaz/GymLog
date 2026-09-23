@@ -289,3 +289,10 @@ Migrated `js/migrations.js` cleanly into `src/utils/migrations.js`.
 - **Corrected Entries Header:** Enclosed the existing title and badge inside a `.section-header` wrapper to fix flex layout spacing.
 - **Corrected Labels/Values:** Changed button from "Save Entry" to "Log Entry". Value input initializes empty, properly showing the placeholder `0` instead of a coerced default.
 - **Browser Testing:** GUI browser automation testing remained unavailable for graphical verification (NOT TESTED). All implementation correctness was SOURCE-VERIFIED through exact 1:1 structural string comparisons with `index_vanilla.html`.
+
+## Stage 10 — Save Session Visual Hotfix
+- **Root Cause:** A visual regression was present in `ExerciseDetail.jsx` where the "Save Workout to History" button incorrectly used the `btn-primary` (orange) class instead of the original vanilla `btn-success` (green) class.
+- **Restored Styling:** Restored `btn-success` to properly render the button green, and restored `.btn-full` to manage full-width layout, removing the redundant `width: 100%` inline style while retaining `margin-bottom` spacing.
+- **Functionality Unchanged:** Data persistence logic, routing, layout, and active-set behavior were explicitly untouched.
+- **Measurement Parity Verified:** Verified that the "Log Entry" button for measurements correctly uses `btn-primary` (orange) according to the vanilla source of truth.
+- **Browser Testing:** Manual graphical browser testing was UNAVAILABLE due to Playwright dependency issues (NOT TESTED). Verified precisely via source string tracking against `index_vanilla.html`.
