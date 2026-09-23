@@ -75,9 +75,11 @@ GymLog has been fully migrated to React. The original monolithic vanilla HTML im
 ├── package.json        # Dependencies
 ├── vite.config.js      # Vite configuration
 ├── vercel.json         # SPA fallback routing for Vercel
-├── index_vanilla.html  # [LEGACY] Original vanilla reference implementation
-├── js/                 # [LEGACY] Original vanilla reference scripts
-└── css/                # [LEGACY] Original vanilla reference styles
+└── _legacy/            # [LEGACY] Archived vanilla reference implementation
+    ├── index_vanilla.html
+    ├── js/
+    ├── css/
+    └── refactor.py
 ```
 
 ---
