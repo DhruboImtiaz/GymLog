@@ -4,7 +4,6 @@ import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import { SettingsIcon } from '../components/ui/Icons';
-import DateSelector from '../components/exercise/DateSelector';
 import LastSessionCard from '../components/exercise/LastSessionCard';
 import SetRow from '../components/exercise/SetRow';
 import AddSetForm from '../components/exercise/AddSetForm';
@@ -78,13 +77,11 @@ export default function ExerciseDetail() {
           <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/day/${dayId}/exercise/${exerciseId}/progress`)}>Progress</button>
         </div>
 
-        <DateSelector offset={dateOffset} setOffset={setDateOffset} />
-        
         <LastSessionCard history={exercise.history} />
 
-        <div className="section-title">
-          <span id="exSetsTitle">{dateTitle}</span>
-          <span className="badge" id="setBadge">{sets.length} set{sets.length !== 1 ? 's' : ''}</span>
+        <div className="section-header">
+          <span className="section-title" id="exSetsTitle">{dateTitle}</span>
+          <span className="section-badge" id="setBadge">{sets.length} set{sets.length !== 1 ? 's' : ''}</span>
         </div>
 
         <div id="setsList">
@@ -105,7 +102,11 @@ export default function ExerciseDetail() {
           )}
         </div>
 
-        <AddSetForm onAdd={handleAddSet} />
+        <AddSetForm 
+          onAdd={handleAddSet} 
+          dateOffset={dateOffset}
+          setDateOffset={setDateOffset}
+        />
 
         {sets.length > 0 && (
           <div id="saveSection" style={{ marginTop: '20px' }}>

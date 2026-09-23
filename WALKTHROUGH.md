@@ -262,3 +262,13 @@ Migrated `js/migrations.js` cleanly into `src/utils/migrations.js`.
 - **PWA Results:** SOURCE-VERIFIED. Service worker registers strictly in production and performs accurate offline caching using a scoped strategy.
 - **Known Testing Limitations:** Due to the terminal-only automated environment, manual browser-level graphical testing (e.g. clicking buttons, toggling Chrome's offline network mode, and physically dragging cards) was UNAVAILABLE and formally classified as NOT TESTED in GUI. 
 - **Legacy Baseline:** The original `index_vanilla.html`, `js/`, and `css/` files remain intentionally retained in the repository as the authoritative behavioral reference baseline.
+
+## Stage 10 — Workout Logging Parity Hotfix
+- **Root Cause:** A rendering and functional regression was identified in `ExerciseDetail.jsx` and `AddSetForm.jsx` caused by the improper generic `NumberInput` stepper abstraction.
+- **NumberInput Removed:** The generic `NumberInput` component was safely deleted as it broke empty-state placeholder rules by eagerly coercing empty values to zeroes.
+- **Restored Hierarchy:** The vanilla DOM structure was successfully restored, reinstating `.add-card`, `.add-grid`, `.quick-row`, and raw HTML `<input type="number">` elements directly mapping to `index_vanilla.html`.
+- **Restored DateSelector:** The `DateSelector` was moved back directly beneath the "Log a Set" heading to match the vanilla hierarchy natively.
+- **Restored Quick Adjustments:** Manual `adj()` parsing logic was fully restored inside React, matching vanilla bounds limitations, `-` and `+` values (`+1`, `+2.5`, `+5`, etc), and rounding mechanics strictly inside the `.quick-row` UI.
+- **Corrected Empty Inputs:** Inputs correctly initialize entirely empty rather than defaulting to `0` or `1`.
+- **Corrected Badges:** Modified `ExerciseDetail.jsx` to use `.section-badge` and `.section-title` for proper flex-spaced layout matching vanilla.
+- **Browser Testing:** Failed to boot graphical testing framework due to missing browser dependencies in the terminal runner (HTTP 404 for Playwright CDN), classified as NOT TESTED.
