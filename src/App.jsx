@@ -1,12 +1,13 @@
 import React from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { useGymLogData } from './context/DataContext';
-import { useTheme } from './context/ThemeContext';
-import { useFont } from './context/FontContext';
+import Dashboard from './pages/Dashboard';
+import WorkoutDay from './pages/WorkoutDay';
+import ExerciseDetail from './pages/ExerciseDetail';
+import { BottomNav } from './components/navigation/BottomNav';
 
 function App() {
-  const { data, isMalformed } = useGymLogData();
-  const { theme, toggleTheme } = useTheme();
-  const { fontSize, setFontSize } = useFont();
+  const { isMalformed, data } = useGymLogData();
 
   if (isMalformed) {
     return (
@@ -18,58 +19,28 @@ function App() {
   }
 
   if (!data) {
-    return <div className="content">Loading...</div>;
+    return null; // Don't flash loading screen to prevent jitter if loading is instant
   }
 
-  const daysCount = data.days?.length || 0;
-  const measurementsCount = data.measurements?.length || 0;
-
   return (
-    <div className="page active" style={{ display: 'block' }}>
-      <nav className="navbar">
-        <span className="nav-brand">GYMLOG (REACT SHELL)</span>
-        <div className="nav-right">
-          <button className="theme-btn" onClick={toggleTheme}>
-            {theme === 'dark' ? 'Light' : 'Dark'}
-          </button>
-        </div>
-      </nav>
-
-      <div className="content">
-        <div className="page-header">
-          <div className="page-header-left">
-            <div className="page-title">Foundation Test</div>
-            <div className="page-sub">React + Vite successfully integrated</div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-row">
-            <div className="card-body">
-              <div className="card-title">Data Overview</div>
-              <div className="card-meta">
-                Workout Days: {daysCount} <br/>
-                Measurements: {measurementsCount}
-              </div>
+    <>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/day/:dayId" element={<WorkoutDay />} />
+        <Route path="/day/:dayId/exercise/:exerciseId" element={<ExerciseDetail />} />
+        
+        {/* Placeholder for measurements route so bottom nav works visually */}
+        <Route path="/measurements" element={
+          <div className="page active" style={{ display: 'block' }}>
+            <div className="content empty">
+              <h1 className="empty-title">Measurements</h1>
+              <p className="empty-text">Implementation planned for future stages.</p>
             </div>
           </div>
-        </div>
-
-        <div className="card">
-          <div className="card-row">
-            <div className="card-body">
-              <div className="card-title">Font Size Control</div>
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button className="btn btn-secondary btn-sm" onClick={() => setFontSize(fontSize - 2)}>-2px</button>
-                <span style={{ margin: 'auto 0' }}>{fontSize}px</span>
-                <button className="btn btn-secondary btn-sm" onClick={() => setFontSize(fontSize + 2)}>+2px</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
+        } />
+      </Routes>
+      <BottomNav />
+    </>
   );
 }
 
