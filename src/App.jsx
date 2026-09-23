@@ -9,6 +9,9 @@ import { BottomNav } from './components/navigation/BottomNav';
 import Measurements from './pages/Measurements';
 import MeasurementDetail from './pages/MeasurementDetail';
 
+import ExerciseProgress from './pages/ExerciseProgress';
+import MeasurementProgress from './pages/MeasurementProgress';
+
 function App() {
   const { isMalformed, data } = useGymLogData();
 
@@ -31,9 +34,11 @@ function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/day/:dayId" element={<WorkoutDay />} />
         <Route path="/day/:dayId/exercise/:exerciseId" element={<ExerciseDetail />} />
+        <Route path="/day/:dayId/exercise/:exerciseId/progress" element={<ExerciseProgress />} />
         
         <Route path="/measurements" element={<Measurements />} />
         <Route path="/measurements/:measId" element={<MeasurementDetail />} />
+        <Route path="/measurements/:measId/progress" element={<MeasurementProgress />} />
       </Routes>
       <BottomNav />
     </>

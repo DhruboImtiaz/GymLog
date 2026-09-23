@@ -154,3 +154,24 @@ This sets up the functional skeleton of the application, connecting the foundati
 ### 5. Known limitations
 - **Measurement Progress Charts:** Explicitly deferred to Stage 6 (Data Visualization) alongside Exercise Progress Charts to prevent fragmented architectural dependencies on `chart.js`.
 - **Drag-and-Drop Reordering:** Explicitly deferred to a later Stage. The array retains its legacy ordering and rendering faithfully.
+
+## Stage 6 — Data Visualization
+
+### 1. What was implemented
+- **Dependencies:** Installed `chart.js` and `react-chartjs-2` to provide an industry-standard, lifecycle-safe graphing framework natively built for React.
+- **Shared Architecture:** Created `src/components/charts/LineChart.jsx`. It perfectly maps to vanilla's `opts` configuration object, including the hex string append `color + '22'` for the fill opacity, and handles dynamic chart `gc` (grid color) and `tc` (text color) depending on the active `ThemeContext`.
+- **Exercise Progress (`ExerciseProgress.jsx`):** Reproduces all 3 charts (`#ff6b35` Max Weight, `#4ade80` Max Reps at Max Weight, `#60a5fa` Max Reps). Implements the month/year filter selectors identical to vanilla and safely executes mapping transformations directly on `exercise.history` arrays using `Math.max` fallback guarantees.
+- **Measurement Progress (`MeasurementProgress.jsx`):** Filters and renders `measurement.entries` into a progression chart, identically maintaining the `value` mappings and `#4ade80` progression color.
+- **Legacy Components Enabled:** Updated `ExerciseDetail.jsx` and `MeasurementDetail.jsx` to swap their disabled `Progress (Later)` buttons into active React Router navigation hooks that push into the respective progress views.
+
+### 2. Architecture decisions
+- **Lifecycle Management:** Replaced manual `wChart.destroy()` vanilla operations with declarative `<Line />` components. React and `react-chartjs-2` guarantee canvas reuse and automatic destroy/recreate lifecycles on unmount, completely preventing memory leaks.
+- **Strictly Read-Only Data:** Neither progress view interacts with `DataContext.jsx` mutations. We create local `[...hist]` and `[...entries]` copies before chaining `.reverse()` to render the Workout History feed, ensuring we never accidentally mutate global chronological arrays.
+- **Math Edge Cases:** Correctly maintained vanilla behaviors, e.g., if a session has no sets (`sets=[]`), vanilla evaluated `Math.max(...[{weight:0}])` to prevent `-Infinity`. This logic is duplicated precisely.
+
+### 3. Testing & Legacy Validation
+- Verified month/year drop downs correctly pre-select `now.getMonth()` and the most recent year containing data.
+- Verified "No History Yet" empty state renders correctly when the month filter yields `0` records.
+- Toggled dark/light mode and verified `<LineChart />` instantly updates the gridlines and text tick colors dynamically without a reload.
+- Verified that `gymlog_data` remains completely unmutated when jumping back and forth across progress views.
+- Verified legacy `index_vanilla.html` records plotted identically on the new React charts.

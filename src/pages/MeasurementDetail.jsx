@@ -67,7 +67,7 @@ export default function MeasurementDetail() {
             <button className="back-btn" onClick={() => navigate('/measurements')}>‹ Back</button>
             <div className="page-title">{measurement.name}</div>
           </div>
-          <button className="btn btn-secondary btn-sm" disabled>Progress (Later)</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/measurements/${measId}/progress`)}>Progress</button>
         </div>
 
         <DateSelector offset={dateOffset} setOffset={setDateOffset} />

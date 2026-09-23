@@ -73,7 +73,7 @@ export default function ExerciseDetail() {
             <button className="back-btn" onClick={() => navigate(-1)}>‹ {day.name}</button>
             <div className="page-title" id="exTitle">{exercise.name}</div>
           </div>
-          <button className="btn btn-secondary btn-sm" disabled>Progress (Later)</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/day/${dayId}/exercise/${exerciseId}/progress`)}>Progress</button>
         </div>
 
         <DateSelector offset={dateOffset} setOffset={setDateOffset} />
