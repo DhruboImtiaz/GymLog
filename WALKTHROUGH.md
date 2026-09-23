@@ -272,3 +272,10 @@ Migrated `js/migrations.js` cleanly into `src/utils/migrations.js`.
 - **Corrected Empty Inputs:** Inputs correctly initialize entirely empty rather than defaulting to `0` or `1`.
 - **Corrected Badges:** Modified `ExerciseDetail.jsx` to use `.section-badge` and `.section-title` for proper flex-spaced layout matching vanilla.
 - **Browser Testing:** Failed to boot graphical testing framework due to missing browser dependencies in the terminal runner (HTTP 404 for Playwright CDN), classified as NOT TESTED.
+
+## Stage 10 — Date Selector Visual Hotfix
+- **Root Cause:** The React `DateSelector` component used incorrect, invented class names (`.date-sel`, `.date-sel-item`) and tags (`<div>`), causing it to lose its CSS bindings and render as unstyled stacked text.
+- **Restored Hooks:** The original vanilla `.date-selector` and `.date-btn` class hooks were restored. Clickable elements were correctly reverted to semantic `<button type="button">` tags.
+- **Restored Text:** The "2 Days Ago" text was restored in place of "2d Ago".
+- **Logic Intact:** The underlying `dateOffset` logic, state management, and save-session behavior were explicitly preserved and not modified.
+- **Browser Testing:** Manual GUI testing via browser automation was UNAVAILABLE due to the Playwright CDN HTTP 404 dependency failure (classified as NOT TESTED in browser). Verified strictly via source-code CSS mapping.
