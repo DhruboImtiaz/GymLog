@@ -18,6 +18,13 @@ import SettingsModal from './components/settings/SettingsModal';
 function App() {
   const { isMalformed, data } = useGymLogData();
 
+  React.useEffect(() => {
+    if (localStorage.getItem('gymlog_restore_success') === 'true') {
+      localStorage.removeItem('gymlog_restore_success');
+      alert('Data restored successfully');
+    }
+  }, []);
+
   if (isMalformed) {
     return (
       <div className="content empty">

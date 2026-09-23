@@ -232,3 +232,16 @@ Migrated `js/migrations.js` cleanly into `src/utils/migrations.js`.
 ### 5. Interoperability Testing
 - Backups made in `index_vanilla.html` seamlessly restored into React GymLog instantly rendering graphs flawlessly.
 - Backups downloaded in React GymLog flawlessly imported backward into the legacy vanilla UI. Zero vendor lock-in!
+
+## Stage 9 — PWA & Offline Functionality
+
+- **Static Asset Placement:** Corrected by moving `manifest.json`, `icon-192.png`, and `icon-512.png` into a new `public/` directory so Vite correctly bundles them into `dist/`.
+- **Vercel Config:** `vercel.json` intentionally remains at the project root. It is a deployment configuration for Vercel, not a browser static asset.
+- **Service Worker:** Created a robust custom service worker (`public/sw.js`) utilizing a native vanilla JavaScript approach to avoid `workbox-build` single-quote path bugs while perfectly matching the minimalist app philosophy.
+- **Caching Strategy:**
+  - **Network-first** for `index.html` (navigate requests) to ensure the user always receives the latest application shell on load.
+  - **Stale-while-revalidate** for static assets (JS, CSS) and Google Fonts, caching them dynamically on the first visit so they are available offline.
+  - **Opaque Response Support:** Configured to correctly cache cross-origin Google Fonts securely.
+- **Update Behavior:** The Service Worker is loaded quietly in the background via `main.jsx`. The update strategy defaults to letting the browser manage the SW naturally without forced reloads, preventing disruption to active workouts.
+- **Data Integrity:** `localStorage` architecture remains entirely untouched, guaranteeing safe interoperability and reliable offline data storage without interference from the Service Worker.
+- **Limitation:** As documented in the vanilla roadmap, Google Fonts require an initial network connection to be cached. Offline use before the first complete load will result in fallback system fonts.

@@ -6,8 +6,8 @@ export function generateBackup() {
   const data = {};
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    // Identify GymLog keys by prefix 'gymlog_'
-    if (key && key.startsWith('gymlog_')) {
+    // Identify GymLog keys by prefix 'gymlog_', explicitly avoiding restore_success
+    if (key && key.startsWith('gymlog_') && key !== 'gymlog_restore_success') {
       data[key] = localStorage.getItem(key);
     }
   }
