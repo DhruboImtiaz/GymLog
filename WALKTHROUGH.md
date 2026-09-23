@@ -245,3 +245,7 @@ Migrated `js/migrations.js` cleanly into `src/utils/migrations.js`.
 - **Update Behavior:** The Service Worker is loaded quietly in the background via `main.jsx`. The update strategy defaults to letting the browser manage the SW naturally without forced reloads, preventing disruption to active workouts.
 - **Data Integrity:** `localStorage` architecture remains entirely untouched, guaranteeing safe interoperability and reliable offline data storage without interference from the Service Worker.
 - **Limitation:** As documented in the vanilla roadmap, Google Fonts require an initial network connection to be cached. Offline use before the first complete load will result in fallback system fonts.
+
+### Verification Pass
+- **Service Worker Scoping:** The Service Worker activate event was tightened to only delete caches matching `gymlog-cache-*`, guaranteeing that no unrelated caches on the domain are accidentally cleared.
+- **Registration Safeguard:** `main.jsx` was restricted with `import.meta.env.PROD` to prevent the Service Worker from aggressively installing and caching assets during `npm run dev`.
