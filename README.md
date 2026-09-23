@@ -54,47 +54,47 @@ GymLog is a zero-dependency, single-file Progressive Web App (PWA) for tracking 
 
 | Concern | Solution |
 |---|---|
-| Framework | None — vanilla HTML, CSS, JS |
-| Charts | [Chart.js](https://cdn.jsdelivr.net/npm/chart.js) via CDN |
+| Framework | [React](https://react.dev/) + [Vite](https://vitejs.dev/) |
+| Routing | [React Router](https://reactrouter.com/) |
+| Charts | [Chart.js](https://cdn.jsdelivr.net/npm/chart.js) + react-chartjs-2 |
 | Fonts | [Bebas Neue](https://fonts.google.com/specimen/Bebas+Neue) (display) + [DM Sans](https://fonts.google.com/specimen/DM+Sans) (body) via Google Fonts |
 | Storage | `localStorage` (no backend) |
-| Deployment | [Netlify](https://www.netlify.com/) |
-| PWA | `manifest.json` + `<meta>` tags |
+| Deployment | [Vercel](https://vercel.com/) / [Netlify](https://www.netlify.com/) |
+| PWA | Custom vanilla Service Worker (`sw.js`) + `manifest.json` for offline app-shell caching |
 
 ---
 
 ## Project Structure
 
+GymLog has been fully migrated to React. The original monolithic vanilla HTML implementation is intentionally retained in the repository purely as a behavioral and reference baseline.
+
 ```
-├── index.html          # Entire app — markup, styles, and core routing logic
-├── js/                 # Modular logic files
-│   ├── backup.js       # Backup generation and dynamic key collection
-│   ├── helpers.js      # Utility functions (downloads, file pickers)
-│   ├── migrations.js   # Centralized data model migration registry
-│   └── restore.js      # Robust restoration, validation, and rollback system
-├── manifest.json       # PWA manifest (name, icons, display mode)
-├── _redirects          # SPA redirect rule for Netlify deployment
-├── icon-192.png        # PWA icon (192×192)
-├── icon-512.png        # PWA icon (512×512)
-└── refactor.py         # One-off migration script (Templates → Measurements)
+├── src/                # React source code (components, pages, context, hooks)
+├── public/             # Static PWA assets (sw.js, manifest.json, icons)
+├── index.html          # Vite entry point
+├── package.json        # Dependencies
+├── vite.config.js      # Vite configuration
+├── vercel.json         # SPA fallback routing for Vercel
+├── index_vanilla.html  # [LEGACY] Original vanilla reference implementation
+├── js/                 # [LEGACY] Original vanilla reference scripts
+└── css/                # [LEGACY] Original vanilla reference styles
 ```
 
 ---
 
 ## Getting Started
 
-No build step required.
-
 ```bash
 # Clone the repo
 git clone https://github.com/your-username/gymlog.git
 cd gymlog
 
-# Open directly in a browser
-open index.html
+# Install dependencies and start development server
+npm install
+npm run dev
 
-# Or serve locally (e.g. with Python)
-python3 -m http.server 3000
+# Build for production
+npm run build
 ```
 
 Then visit `http://localhost:3000`.
@@ -132,7 +132,6 @@ All data is stored in the browser's `localStorage` under dynamic keys associated
 - [ ] Rest timer
 - [ ] Unit preference (kg vs lbs) — currently per-entry
 - [ ] Cloud sync / account support
-- [ ] No offline caching via Service Worker yet (fonts and Chart.js require internet on first load)
 
 ---
 

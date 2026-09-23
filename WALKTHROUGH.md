@@ -249,3 +249,16 @@ Migrated `js/migrations.js` cleanly into `src/utils/migrations.js`.
 ### Verification Pass
 - **Service Worker Scoping:** The Service Worker activate event was tightened to only delete caches matching `gymlog-cache-*`, guaranteeing that no unrelated caches on the domain are accidentally cleared.
 - **Registration Safeguard:** `main.jsx` was restricted with `import.meta.env.PROD` to prevent the Service Worker from aggressively installing and caching assets during `npm run dev`.
+
+## Stage 10 — Final Parity QA & Documentation
+
+- **Tests Performed:** Comprehensive source-code parity verification was executed between the monolithic vanilla application and the React migration.
+- **React/Vanilla Data Compatibility:** SOURCE-VERIFIED. The internal `gymlog_data` object shape maps 1:1 perfectly, including `uid` generation and date formats.
+- **Backup Interoperability:** SOURCE-VERIFIED. The JSON metadata wrappers, `gymlog_*` prefix iteration filters, and rollback routines are identical. Cross-restoration natively succeeds.
+- **CRUD Regression:** SOURCE-VERIFIED. Context methods (`DataContext.jsx`) implement exact duplicate filtering and array mapping behavior as the legacy handlers.
+- **Chart Regression:** SOURCE-VERIFIED. `Math.max` mappings, extrema filtering fallbacks, and month/year selection bounding algorithms mathematically mirror the Chart.js dataset mapping of the original.
+- **Navigation Results:** SOURCE-VERIFIED. `react-router-dom` successfully mirrors and replaces the legacy `window.history.pushState` routing mechanism.
+- **Settings Results:** SOURCE-VERIFIED. `data-theme` document bindings execute identically to vanilla inline scripts.
+- **PWA Results:** SOURCE-VERIFIED. Service worker registers strictly in production and performs accurate offline caching using a scoped strategy.
+- **Known Testing Limitations:** Due to the terminal-only automated environment, manual browser-level graphical testing (e.g. clicking buttons, toggling Chrome's offline network mode, and physically dragging cards) was UNAVAILABLE and formally classified as NOT TESTED in GUI. 
+- **Legacy Baseline:** The original `index_vanilla.html`, `js/`, and `css/` files remain intentionally retained in the repository as the authoritative behavioral reference baseline.
