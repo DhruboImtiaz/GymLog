@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { SettingsIcon, EditIcon, DragHandleIcon } from '../components/ui/Icons';
 import { esc } from '../utils/helpers';
+import usePointerReorder from '../hooks/usePointerReorder';
 
 export default function WorkoutDay() {
   const { dayId } = useParams();
   const navigate = useNavigate();
-  const { data, addExercise, renameExercise, deleteExercise } = useGymLogData();
+  const { data, addExercise, renameExercise, deleteExercise, reorderExercises } = useGymLogData();
   const { theme, toggleTheme } = useTheme();
+
+  const day = data?.days.find(d => d.id === dayId);
+
+  const listRef = useRef(null);
+  usePointerReorder(listRef, day?.exercises || [], (newOrder) => reorderExercises(dayId, newOrder));
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newExName, setNewExName] = useState('');
@@ -19,8 +25,6 @@ export default function WorkoutDay() {
   
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
-  if (!data) return null;
-  const day = data.days.find(d => d.id === dayId);
   if (!day) {
     navigate('/', { replace: true });
     return null;
@@ -72,7 +76,7 @@ export default function WorkoutDay() {
           <button className="btn btn-primary" onClick={() => setIsAddOpen(true)}>+ Exercise</button>
         </div>
 
-        <div id="exercisesList">
+        <div id="exercisesList" ref={listRef}>
           {(!day.exercises || day.exercises.length === 0) ? (
             <div className="empty">
               <div className="empty-title">No Exercises Yet</div>

@@ -305,6 +305,42 @@ export function DataProvider({ children }) {
     saveAndSetData(newData);
   }, [data, saveAndSetData]);
 
+  // Reorder Operations
+  const reorderDays = useCallback((newDays) => {
+    if (!data) return;
+    const newData = {
+      ...data,
+      days: newDays
+    };
+    saveAndSetData(newData);
+  }, [data, saveAndSetData]);
+
+  const reorderExercises = useCallback((dayId, newExercises) => {
+    if (!data) return;
+    const newData = {
+      ...data,
+      days: data.days.map(day => {
+        if (day.id === dayId) {
+          return {
+            ...day,
+            exercises: newExercises
+          };
+        }
+        return day;
+      })
+    };
+    saveAndSetData(newData);
+  }, [data, saveAndSetData]);
+
+  const reorderMeasurements = useCallback((newMeasurements) => {
+    if (!data) return;
+    const newData = {
+      ...data,
+      measurements: newMeasurements
+    };
+    saveAndSetData(newData);
+  }, [data, saveAndSetData]);
+
 
   const value = {
     data,
@@ -323,7 +359,10 @@ export function DataProvider({ children }) {
     renameMeasurement,
     deleteMeasurement,
     addMeasurementEntry,
-    deleteMeasurementEntry
+    deleteMeasurementEntry,
+    reorderDays,
+    reorderExercises,
+    reorderMeasurements
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

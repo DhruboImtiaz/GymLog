@@ -175,3 +175,30 @@ This sets up the functional skeleton of the application, connecting the foundati
 - Toggled dark/light mode and verified `<LineChart />` instantly updates the gridlines and text tick colors dynamically without a reload.
 - Verified that `gymlog_data` remains completely unmutated when jumping back and forth across progress views.
 - Verified legacy `index_vanilla.html` records plotted identically on the new React charts.
+
+## Stage 7 — Drag-and-Drop Reordering
+
+### 1. Vanilla behavior discovered
+The vanilla architecture utilized a bespoke, highly-optimized drag-and-drop mechanism relying entirely on raw DOM Pointer Events (`pointerdown`, `pointermove`, `pointerup`). It specifically bound to `.card-drag-handle` to prevent scrolling collision on mobile, applied `.setPointerCapture` to maintain the dragging state even if the finger exited the screen, and directly applied 60FPS CSS transforms (`translate3d(0, deltaY, 0)`) to the dragged card and adjacent shifting cards to prevent the performance bottleneck of updating React state on every pixel move.
+
+### 2. React Hook Architecture
+- Extracted the exact vanilla algorithm into a custom React hook: `src/hooks/usePointerReorder.js`.
+- It takes a `containerRef`, tracks the `itemsArray` dependency, and wires up the DOM logic directly. This avoids installing bloated drag libraries like `react-beautiful-dnd` or `dnd-kit`, perfectly maintaining the existing GymLog visual layout.
+- Added strict cleanup (`removeEventListener`, `clearTimeout`, and restoring inline styles) on hook unmount to guarantee no stale class injections remain if the user navigates mid-drag.
+
+### 3. DataContext Mutations
+Created three targeted array replacements in `DataContext.jsx`:
+- `reorderDays`
+- `reorderExercises`
+- `reorderMeasurements`
+These mutations strictly replace the top-level array sequence using immutable spread operators. No mapping, filtering, ID generation, or nested payload manipulation occurs, guaranteeing `gymlog_data` schemas remain 100% legacy compatible and active sets/histories are untouched.
+
+### 4. Integration
+- `Dashboard.jsx`, `WorkoutDay.jsx`, and `Measurements.jsx` were upgraded with `const listRef = useRef(null)`.
+- Reordering operations cleanly dispatch the `onSave` event resolving the new chronological array into React context immediately.
+
+### 5. Testing & Validation
+- Validated touch/pointer emulation dragging via handles.
+- Confirmed that scrolling the screen by touching the body of the card functions exactly as expected (no scroll-lock bugs).
+- Confirmed `pointercancel` securely releases the pointer capture and reverts transforms.
+- Validated Stage 3-6 functionality remaining fully stable; clicking a card correctly routes, editing works, and charts still graph perfectly regardless of their day/exercise positioning.

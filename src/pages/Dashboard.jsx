@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { SettingsIcon, EditIcon, DragHandleIcon } from '../components/ui/Icons';
 import { esc } from '../utils/helpers';
+import usePointerReorder from '../hooks/usePointerReorder';
 
 export default function Dashboard() {
-  const { data, createDay, renameDay, deleteDay } = useGymLogData();
+  const { data, createDay, renameDay, deleteDay, reorderDays } = useGymLogData();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+
+  const listRef = useRef(null);
+  usePointerReorder(listRef, data?.days || [], reorderDays);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newDayName, setNewDayName] = useState('');
@@ -67,7 +71,7 @@ export default function Dashboard() {
           <button className="btn btn-primary" onClick={() => setIsCreateOpen(true)}>+ New Day</button>
         </div>
 
-        <div id="daysList">
+        <div id="daysList" ref={listRef}>
           {(!data || data.days.length === 0) ? (
             <div className="empty">
               <div className="empty-title">No Workout Days Yet</div>

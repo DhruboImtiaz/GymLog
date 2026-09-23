@@ -1,15 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { SettingsIcon } from '../components/ui/Icons';
 import { esc } from '../utils/helpers';
 import { BottomNav } from '../components/navigation/BottomNav';
+import usePointerReorder from '../hooks/usePointerReorder';
 
 export default function Measurements() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const { data, createMeasurement, renameMeasurement, deleteMeasurement } = useGymLogData();
+  const { data, createMeasurement, renameMeasurement, deleteMeasurement, reorderMeasurements } = useGymLogData();
+
+  const measurements = data?.measurements || [];
+  const listRef = useRef(null);
+  usePointerReorder(listRef, measurements, reorderMeasurements);
 
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -52,8 +57,6 @@ export default function Measurements() {
     alert('Deleted');
   };
 
-  const measurements = data?.measurements || [];
-
   return (
     <div className="page active" style={{ display: 'block' }}>
       <nav className="navbar">
@@ -74,7 +77,7 @@ export default function Measurements() {
           <button className="btn btn-primary btn-sm" onClick={() => setIsAddOpen(true)}>+ New</button>
         </div>
 
-        <div id="measurementsList">
+        <div id="measurementsList" ref={listRef}>
           {measurements.length === 0 ? (
             <div className="empty">
               <div className="empty-title">No Measurements Yet</div>
