@@ -202,3 +202,33 @@ These mutations strictly replace the top-level array sequence using immutable sp
 - Confirmed that scrolling the screen by touching the body of the card functions exactly as expected (no scroll-lock bugs).
 - Confirmed `pointercancel` securely releases the pointer capture and reverts transforms.
 - Validated Stage 3-6 functionality remaining fully stable; clicking a card correctly routes, editing works, and charts still graph perfectly regardless of their day/exercise positioning.
+
+## Stage 8 — Backup, Restore & Data Migration
+
+### 1. Backup implementation
+Replicated the exact JSON backup architecture from vanilla inside `src/utils/backup.js`.
+- Generates a file containing `{ metadata: {...}, data: {...} }`.
+- Scans `localStorage` iterating up to `localStorage.length` capturing all keys starting with `gymlog_` strictly as their string payloads.
+- Emits standard `.json` downloads using `Blob` and `URL.createObjectURL()`. No backend dependencies.
+
+### 2. Restore logic & safety
+Replicated `js/restore.js` securely inside `src/utils/restore.js`.
+- Employs strict parse checks ensuring `file.size < 100MB`.
+- Asserts metadata exists and rejects unsupported schemas (`> CURRENT_SCHEMA_VERSION`).
+- Provides a UI confirmation via `BackupPreviewModal.jsx` identical to vanilla.
+- **Rollback Guarantee:** Builds a `rollback` clone in memory before applying the new `.json` values directly into `localStorage`. 
+- Performs a post-mutation integrity check verifying `gymlog_data` parses cleanly into an object containing `days` and `measurements` arrays.
+- Fails securely on corruption by executing `localStorage.clear()` followed by re-hydrating the `rollback` map, preventing UI state loss.
+
+### 3. Migration system
+Migrated `js/migrations.js` cleanly into `src/utils/migrations.js`.
+- Maintains the legacy `CURRENT_SCHEMA_VERSION = 1`.
+- Provides the stepwise iteration loop (`while (currentVersion < CURRENT_SCHEMA_VERSION)`) ready to apply patches safely whenever we decide to bump GymLog schemas in the future.
+
+### 4. React Integration & Hydration
+- Global Settings (`<SettingsModal />`) sits injected at `App.jsx`, exposing Appearance sliders alongside Data Backup tools natively.
+- On successful validation and restore confirmation, it drops the `gymlog_restore_success` tag into memory and executes `window.location.reload()`. This is identical to the vanilla behavior, and in SPA React, it functions as the absolute safest guarantee to force-reset all Context state (Theme, Font, Data) and completely annihilate any stale `useState` arrays tracking old entity data.
+
+### 5. Interoperability Testing
+- Backups made in `index_vanilla.html` seamlessly restored into React GymLog instantly rendering graphs flawlessly.
+- Backups downloaded in React GymLog flawlessly imported backward into the legacy vanilla UI. Zero vendor lock-in!

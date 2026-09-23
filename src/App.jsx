@@ -12,6 +12,9 @@ import MeasurementDetail from './pages/MeasurementDetail';
 import ExerciseProgress from './pages/ExerciseProgress';
 import MeasurementProgress from './pages/MeasurementProgress';
 
+import { SettingsProvider } from './context/SettingsContext';
+import SettingsModal from './components/settings/SettingsModal';
+
 function App() {
   const { isMalformed, data } = useGymLogData();
 
@@ -29,7 +32,7 @@ function App() {
   }
 
   return (
-    <>
+    <SettingsProvider>
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/day/:dayId" element={<WorkoutDay />} />
@@ -41,7 +44,8 @@ function App() {
         <Route path="/measurements/:measId/progress" element={<MeasurementProgress />} />
       </Routes>
       <BottomNav />
-    </>
+      <SettingsModal />
+    </SettingsProvider>
   );
 }
 

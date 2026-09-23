@@ -4,12 +4,14 @@ import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { SettingsIcon } from '../components/ui/Icons';
 import { esc } from '../utils/helpers';
+import { useSettings } from '../context/SettingsContext';
 import { BottomNav } from '../components/navigation/BottomNav';
 import usePointerReorder from '../hooks/usePointerReorder';
 
 export default function Measurements() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { setIsSettingsOpen } = useSettings();
   const { data, createMeasurement, renameMeasurement, deleteMeasurement, reorderMeasurements } = useGymLogData();
 
   const measurements = data?.measurements || [];
@@ -65,7 +67,7 @@ export default function Measurements() {
           <button className="theme-btn" onClick={toggleTheme}>
             {theme === 'dark' ? 'Light' : 'Dark'}
           </button>
-          <button className="settings-btn" aria-label="Settings" title="Settings">
+          <button className="settings-btn" aria-label="Settings" title="Settings" onClick={() => setIsSettingsOpen(true)}>
             <SettingsIcon />
           </button>
         </div>

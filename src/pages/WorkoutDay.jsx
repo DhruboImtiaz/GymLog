@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { SettingsIcon, EditIcon, DragHandleIcon } from '../components/ui/Icons';
+import { useSettings } from '../context/SettingsContext';
 import { esc } from '../utils/helpers';
 import usePointerReorder from '../hooks/usePointerReorder';
 
@@ -11,6 +12,7 @@ export default function WorkoutDay() {
   const navigate = useNavigate();
   const { data, addExercise, renameExercise, deleteExercise, reorderExercises } = useGymLogData();
   const { theme, toggleTheme } = useTheme();
+  const { setIsSettingsOpen } = useSettings();
 
   const day = data?.days.find(d => d.id === dayId);
 
@@ -61,7 +63,7 @@ export default function WorkoutDay() {
           <button className="theme-btn" onClick={toggleTheme}>
             {theme === 'dark' ? 'Light' : 'Dark'}
           </button>
-          <button className="settings-btn" aria-label="Settings" title="Settings">
+          <button className="settings-btn" aria-label="Settings" title="Settings" onClick={() => setIsSettingsOpen(true)}>
             <SettingsIcon />
           </button>
         </div>

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
+import { useSettings } from '../context/SettingsContext';
 import { SettingsIcon, EditIcon, DragHandleIcon } from '../components/ui/Icons';
 import { esc } from '../utils/helpers';
 import usePointerReorder from '../hooks/usePointerReorder';
@@ -9,6 +10,7 @@ import usePointerReorder from '../hooks/usePointerReorder';
 export default function Dashboard() {
   const { data, createDay, renameDay, deleteDay, reorderDays } = useGymLogData();
   const { theme, toggleTheme } = useTheme();
+  const { setIsSettingsOpen } = useSettings();
   const navigate = useNavigate();
 
   const listRef = useRef(null);
@@ -56,7 +58,7 @@ export default function Dashboard() {
           <button className="theme-btn" onClick={toggleTheme}>
             {theme === 'dark' ? 'Light' : 'Dark'}
           </button>
-          <button className="settings-btn" aria-label="Settings" title="Settings">
+          <button className="settings-btn" aria-label="Settings" title="Settings" onClick={() => setIsSettingsOpen(true)}>
             <SettingsIcon />
           </button>
         </div>

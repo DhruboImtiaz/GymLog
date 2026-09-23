@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
+import { useSettings } from '../context/SettingsContext';
 import { SettingsIcon } from '../components/ui/Icons';
 import { fmt } from '../utils/helpers';
 import DateSelector from '../components/exercise/DateSelector';
@@ -10,6 +11,7 @@ export default function MeasurementDetail() {
   const { measId } = useParams();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { setIsSettingsOpen } = useSettings();
   const { data, addMeasurementEntry, deleteMeasurementEntry } = useGymLogData();
 
   const [dateOffset, setDateOffset] = useState(0);
@@ -55,7 +57,7 @@ export default function MeasurementDetail() {
           <button className="theme-btn" onClick={toggleTheme}>
             {theme === 'dark' ? 'Light' : 'Dark'}
           </button>
-          <button className="settings-btn" aria-label="Settings" title="Settings">
+          <button className="settings-btn" aria-label="Settings" title="Settings" onClick={() => setIsSettingsOpen(true)}>
             <SettingsIcon />
           </button>
         </div>

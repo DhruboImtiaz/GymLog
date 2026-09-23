@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
+import { useSettings } from '../context/SettingsContext';
 import { SettingsIcon } from '../components/ui/Icons';
 import { fmt, esc } from '../utils/helpers';
 import LineChart from '../components/charts/LineChart';
@@ -11,6 +12,7 @@ export default function MeasurementProgress() {
   const navigate = useNavigate();
   const { data } = useGymLogData();
   const { theme, toggleTheme } = useTheme();
+  const { setIsSettingsOpen } = useSettings();
 
   if (!data) return null;
   const measurement = data.measurements?.find(m => m.id === measId);
@@ -50,7 +52,7 @@ export default function MeasurementProgress() {
           <button className="theme-btn" onClick={toggleTheme}>
             {theme === 'dark' ? 'Light' : 'Dark'}
           </button>
-          <button className="settings-btn" aria-label="Settings" title="Settings">
+          <button className="settings-btn" aria-label="Settings" title="Settings" onClick={() => setIsSettingsOpen(true)}>
             <SettingsIcon />
           </button>
         </div>
