@@ -16,7 +16,15 @@ export default function MeasurementDetail() {
 
   const [dateOffset, setDateOffset] = useState(0);
   const [inValue, setInValue] = useState('');
-  const [inUnit, setInUnit] = useState('kg');
+  const [inUnit, setInUnit] = useState('cm');
+
+  const handleAdj = (amt) => {
+    let current = parseFloat(inValue);
+    if (isNaN(current)) current = 0;
+    let next = Math.round((current + amt) * 100) / 100;
+    // Note: Vanilla doesn't clamp negative measurement values since input min isn't set
+    setInValue(String(next));
+  };
 
   if (!data) return null;
   const measurement = data.measurements?.find(m => m.id === measId);
@@ -72,21 +80,18 @@ export default function MeasurementDetail() {
           <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/measurements/${measId}/progress`)}>Progress</button>
         </div>
 
-        <DateSelector offset={dateOffset} setOffset={setDateOffset} />
-
-        <div className="section-title">
-          <span>Entries</span>
-          <span className="badge">
+        <div className="section-header">
+          <span className="section-title">Entries</span>
+          <span className="section-badge">
             {entries.length} entr{entries.length !== 1 ? 'ies' : 'y'}
           </span>
         </div>
 
-        <div>
+        <div className="sets-list">
           {sortedEntries.length === 0 ? (
-            <div className="empty">
-              <div className="empty-title">No entries logged yet</div>
-              <p className="empty-text" style={{ marginBottom: 0 }}>Add an entry below to start tracking.</p>
-            </div>
+            <p className="empty-text" style={{ color: 'var(--text2)', fontSize: '0.875rem', textAlign: 'center', padding: '0.75rem 0 1rem', margin: 0 }}>
+              No entries yet — log one below.
+            </p>
           ) : (
             sortedEntries.map(e => {
               const dateFmt = fmt(e.date);
@@ -109,38 +114,48 @@ export default function MeasurementDetail() {
           )}
         </div>
 
-        <div className="card" style={{ marginTop: '20px' }}>
-          <div className="card-body">
-            <div className="card-title">Log Entry</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px' }}>
-              
-              <div className="form-group">
-                <label className="form-label">Value</label>
-                <input 
-                  type="number" 
-                  className="form-input" 
-                  placeholder="0.0" 
-                  inputMode="decimal" 
-                  step="any"
-                  value={inValue}
-                  onChange={(e) => setInValue(e.target.value)}
-                />
+        <div className="add-card">
+          <div className="add-title">Log a Measurement</div>
+          
+          <DateSelector offset={dateOffset} setOffset={setDateOffset} />
+          
+          <div className="add-grid">
+            <div className="input-group">
+              <label className="input-label">Value</label>
+              <input 
+                type="number" 
+                className="num-input" 
+                placeholder="0" 
+                step="0.1" 
+                inputMode="decimal"
+                value={inValue}
+                onChange={(e) => setInValue(e.target.value)}
+              />
+              <div className="quick-row">
+                <button className="qbtn" onClick={() => handleAdj(0.5)}>+0.5</button>
+                <button className="qbtn" onClick={() => handleAdj(1.0)}>+1.0</button>
+                <button className="qbtn" onClick={() => handleAdj(-0.5)}>−0.5</button>
               </div>
+            </div>
 
-              <div className="form-group">
-                <label className="form-label">Unit</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  placeholder="e.g. kg, %, cm" 
-                  value={inUnit}
-                  onChange={(e) => setInUnit(e.target.value)}
-                />
-              </div>
-
-              <button className="btn btn-primary" onClick={handleAddEntry}>Save Entry</button>
+            <div className="input-group">
+              <label className="input-label">Unit</label>
+              <select 
+                className="num-input" 
+                style={{ padding: 0 }}
+                value={inUnit}
+                onChange={(e) => setInUnit(e.target.value)}
+              >
+                <option value="cm">cm</option>
+                <option value="in">inch</option>
+                <option value="kg">kg</option>
+                <option value="lbs">lbs</option>
+                <option value="%">%</option>
+              </select>
             </div>
           </div>
+          
+          <button className="btn btn-primary btn-full" onClick={handleAddEntry}>Log Entry</button>
         </div>
 
       </div>

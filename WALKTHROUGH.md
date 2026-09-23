@@ -279,3 +279,13 @@ Migrated `js/migrations.js` cleanly into `src/utils/migrations.js`.
 - **Restored Text:** The "2 Days Ago" text was restored in place of "2d Ago".
 - **Logic Intact:** The underlying `dateOffset` logic, state management, and save-session behavior were explicitly preserved and not modified.
 - **Browser Testing:** Manual GUI testing via browser automation was UNAVAILABLE due to the Playwright CDN HTTP 404 dependency failure (classified as NOT TESTED in browser). Verified strictly via source-code CSS mapping.
+
+## Stage 10 — Measurement Logging Parity Hotfix
+- **Root Cause:** A rendering and functional regression in `MeasurementDetail.jsx` was resolved. The component incorrectly used generic flex-column stacking (`.card`), failed to enforce `.section-header` bindings, omitted quick adjust functionality, and implemented the native HTML `<select>` unit dropdown as a free-form `<input type="text">`.
+- **Restored Form Hierarchy:** Replaced `.card` with `.add-card` and `.add-title`, moving `DateSelector` securely inside the logging card to match vanilla placement.
+- **Restored Form Layout:** Re-implemented `.add-grid` for proper side-by-side placement of Value and Unit fields.
+- **Restored Quick Adjustments:** Reinstated the `.quick-row` UI elements beneath the Value input (`+0.5`, `+1.0`, `-0.5`) alongside a local parsing function mapping vanilla's un-clamped bounding behavior.
+- **Restored Unit Select:** Restored the strict `<select>` behavior enforcing legacy value-compat string options exactly as defined in vanilla: `cm`, `in` (labelled as `inch`), `kg`, `lbs`, and `%`. `cm` is properly default-selected.
+- **Corrected Entries Header:** Enclosed the existing title and badge inside a `.section-header` wrapper to fix flex layout spacing.
+- **Corrected Labels/Values:** Changed button from "Save Entry" to "Log Entry". Value input initializes empty, properly showing the placeholder `0` instead of a coerced default.
+- **Browser Testing:** GUI browser automation testing remained unavailable for graphical verification (NOT TESTED). All implementation correctness was SOURCE-VERIFIED through exact 1:1 structural string comparisons with `index_vanilla.html`.
