@@ -4,7 +4,7 @@ import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { SettingsIcon, EditIcon, DragHandleIcon } from '../components/ui/Icons';
 import { useSettings } from '../context/SettingsContext';
-import { esc } from '../utils/helpers';
+
 import usePointerReorder from '../hooks/usePointerReorder';
 
 export default function WorkoutDay() {
@@ -93,10 +93,10 @@ export default function WorkoutDay() {
                     <DragHandleIcon />
                   </div>
                   <div className="card-icon" style={{ background: 'var(--gdim)', color: 'var(--green)' }}>
-                    {esc(ex.name.slice(0, 2).toUpperCase())}
+                    {ex.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="card-body">
-                    <div className="card-title">{esc(ex.name)}</div>
+                    <div className="card-title">{ex.name}</div>
                     <div className="card-meta">
                       {(ex.sets || []).length} set{(ex.sets || []).length !== 1 ? 's' : ''} today · {(ex.history || []).length} session{(ex.history || []).length !== 1 ? 's' : ''} logged
                     </div>

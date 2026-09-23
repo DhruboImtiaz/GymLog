@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { SettingsIcon } from '../components/ui/Icons';
-import { esc } from '../utils/helpers';
+
 import { useSettings } from '../context/SettingsContext';
 import { BottomNav } from '../components/navigation/BottomNav';
 import usePointerReorder from '../hooks/usePointerReorder';
@@ -97,9 +97,9 @@ export default function Measurements() {
                       <circle cx="4" cy="15" r="1.5"/><circle cx="10" cy="15" r="1.5"/>
                     </svg>
                   </div>
-                  <div className="card-icon">{esc(m.name.slice(0,2).toUpperCase())}</div>
+                  <div className="card-icon">{m.name.slice(0,2).toUpperCase()}</div>
                   <div className="card-body">
-                    <div className="card-title">{esc(m.name)}</div>
+                    <div className="card-title">{m.name}</div>
                     <div className="card-meta">
                       {(m.entries || []).length} entr{(m.entries || []).length !== 1 ? 'ies' : 'y'}
                     </div>

@@ -4,7 +4,7 @@ import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import { SettingsIcon } from '../components/ui/Icons';
-import { fmt, esc } from '../utils/helpers';
+import { fmt } from '../utils/helpers';
 import LineChart from '../components/charts/LineChart';
 
 export default function MeasurementProgress() {
@@ -95,7 +95,7 @@ export default function MeasurementProgress() {
           ) : (
             <>
               <div className="chart-card">
-                <div className="chart-label">{esc(measurement.name)} Progression</div>
+                <div className="chart-label">{measurement.name} Progression</div>
                 <div className="chart-wrap">
                   <LineChart labels={labels} data={chartData} color="#4ade80" />
                 </div>

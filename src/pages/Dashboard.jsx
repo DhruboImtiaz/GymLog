@@ -4,7 +4,7 @@ import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import { SettingsIcon, EditIcon, DragHandleIcon } from '../components/ui/Icons';
-import { esc } from '../utils/helpers';
+
 import usePointerReorder from '../hooks/usePointerReorder';
 
 export default function Dashboard() {
@@ -87,9 +87,9 @@ export default function Dashboard() {
                   <div className="card-drag-handle" onClick={(e) => e.stopPropagation()} title="Hold and drag to move up or down">
                     <DragHandleIcon />
                   </div>
-                  <div className="card-icon">{esc(d.name.slice(0, 2).toUpperCase())}</div>
+                  <div className="card-icon">{d.name.slice(0, 2).toUpperCase()}</div>
                   <div className="card-body">
-                    <div className="card-title">{esc(d.name)}</div>
+                    <div className="card-title">{d.name}</div>
                     <div className="card-meta">{(d.exercises || []).length} exercise{(d.exercises || []).length !== 1 ? 's' : ''}</div>
                   </div>
                   <div className="card-right-actions">
