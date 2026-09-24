@@ -292,5 +292,111 @@ export const SupabaseService = {
       const { error } = await supabase.from('measurements').update({ position: meas.position }).eq('id', meas.id).eq('user_id', userId);
       if (error) throw new RepositoryError(`Partial failure reordering measurement ${meas.id}: ${error.message}`);
     }
+  },
+
+  // ==========================================
+  // MIGRATION BATCH METHODS (NON-TRANSACTIONAL)
+  // ==========================================
+  
+  upsertDaysBatch: async (days) => {
+    if (!days || days.length === 0) return;
+    const userId = await getUserId();
+    const payload = days.map(day => ({
+      id: day.id,
+      user_id: userId,
+      name: day.name,
+      created_at: day.createdAt,
+      position: day.position
+    }));
+    const { error } = await supabase.from('workout_days').upsert(payload, { onConflict: 'id, user_id' });
+    if (error) throw new RepositoryError(`Batch upsert days failed: ${error.message}`);
+  },
+
+  upsertExercisesBatch: async (exercises) => {
+    if (!exercises || exercises.length === 0) return;
+    const userId = await getUserId();
+    const payload = exercises.map(ex => ({
+      id: ex.id,
+      day_id: ex.dayId,
+      user_id: userId,
+      name: ex.name,
+      position: ex.position
+    }));
+    const { error } = await supabase.from('exercises').upsert(payload, { onConflict: 'id, user_id' });
+    if (error) throw new RepositoryError(`Batch upsert exercises failed: ${error.message}`);
+  },
+
+  upsertActiveSetsBatch: async (sets) => {
+    if (!sets || sets.length === 0) return;
+    const userId = await getUserId();
+    const payload = sets.map(s => ({
+      id: s.id,
+      exercise_id: s.exerciseId,
+      user_id: userId,
+      set_number: s.num,
+      reps: s.reps,
+      weight: s.weight
+    }));
+    // No composite constraint on active_sets, rely on id
+    const { error } = await supabase.from('active_sets').upsert(payload, { onConflict: 'id' });
+    if (error) throw new RepositoryError(`Batch upsert active sets failed: ${error.message}`);
+  },
+
+  upsertHistoryBatch: async (histories) => {
+    if (!histories || histories.length === 0) return;
+    const userId = await getUserId();
+    const payload = histories.map(h => ({
+      id: h.id,
+      exercise_id: h.exerciseId,
+      user_id: userId,
+      log_date: h.date
+    }));
+    const { error } = await supabase.from('workout_history').upsert(payload, { onConflict: 'id, user_id' });
+    if (error) throw new RepositoryError(`Batch upsert history failed: ${error.message}`);
+  },
+
+  upsertHistorySetsBatch: async (historySets) => {
+    if (!historySets || historySets.length === 0) return;
+    const userId = await getUserId();
+    const payload = historySets.map(hs => ({
+      history_id: hs.historyId,
+      user_id: userId,
+      set_number: hs.num,
+      reps: hs.reps,
+      weight: hs.weight
+    }));
+    // Legacy historical sets have no IDs, so we rely on the composite unique constraint
+    const { error } = await supabase.from('workout_history_sets').upsert(payload, { onConflict: 'history_id, set_number' });
+    if (error) throw new RepositoryError(`Batch upsert history sets failed: ${error.message}`);
+  },
+
+  upsertMeasurementsBatch: async (measurements) => {
+    if (!measurements || measurements.length === 0) return;
+    const userId = await getUserId();
+    const payload = measurements.map(m => ({
+      id: m.id,
+      user_id: userId,
+      name: m.name,
+      created_at: m.createdAt,
+      position: m.position
+    }));
+    const { error } = await supabase.from('measurements').upsert(payload, { onConflict: 'id, user_id' });
+    if (error) throw new RepositoryError(`Batch upsert measurements failed: ${error.message}`);
+  },
+
+  upsertMeasurementEntriesBatch: async (entries) => {
+    if (!entries || entries.length === 0) return;
+    const userId = await getUserId();
+    const payload = entries.map(e => ({
+      id: e.id,
+      measurement_id: e.measurementId,
+      user_id: userId,
+      log_date: e.date,
+      value: e.value,
+      unit: e.unit
+    }));
+    // No composite constraint on measurement_entries, rely on id
+    const { error } = await supabase.from('measurement_entries').upsert(payload, { onConflict: 'id' });
+    if (error) throw new RepositoryError(`Batch upsert measurement entries failed: ${error.message}`);
   }
 };
