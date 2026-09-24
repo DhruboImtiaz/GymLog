@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import { useFont } from '../../context/FontContext';
+import { useGymLogData } from '../../context/DataContext';
 import { generateBackup } from '../../utils/backup';
 import { triggerFilePicker, readFileAsText } from '../../utils/helpers';
 import { validateBackupFile } from '../../utils/restore';
@@ -11,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 export default function SettingsModal() {
   const { isSettingsOpen, setIsSettingsOpen } = useSettings();
   const { fontSize, setFontSize } = useFont();
+  const { sourceMode } = useGymLogData();
   const [pendingBackup, setPendingBackup] = useState(null);
 
   if (!isSettingsOpen) return null;
@@ -25,6 +27,7 @@ export default function SettingsModal() {
   };
 
   const handleRestore = async () => {
+    if (sourceMode === 'cloud') return;
     try {
       const file = await triggerFilePicker('.json');
       if (!file) return; // Cancelled
@@ -90,11 +93,19 @@ export default function SettingsModal() {
               <div style={{ fontSize: '0.875rem', color: 'var(--text2)', marginBottom: '0.85rem' }}>Create a complete backup of all GymLog data.</div>
               <button className="btn btn-primary btn-full" onClick={handleBackup}>Backup</button>
             </div>
-            <div className="card" style={{ marginBottom: '0', padding: '1rem' }}>
-              <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.4rem', color: 'var(--text)' }}>Restore Backup</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text2)', marginBottom: '0.85rem' }}>Restore a previously created GymLog backup.</div>
-              <button className="btn btn-secondary btn-full" onClick={handleRestore}>Restore</button>
-            </div>
+            {sourceMode !== 'cloud' ? (
+              <div className="card" style={{ marginBottom: '0', padding: '1rem' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.4rem', color: 'var(--text)' }}>Restore Backup</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text2)', marginBottom: '0.85rem' }}>Restore a previously created GymLog backup.</div>
+                <button className="btn btn-secondary btn-full" onClick={handleRestore}>Restore</button>
+              </div>
+            ) : (
+              <div className="card" style={{ marginBottom: '0', padding: '1rem', opacity: 0.6 }}>
+                <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.4rem', color: 'var(--text)' }}>Restore Backup</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text2)', marginBottom: '0.85rem' }}>Cloud restore functionality is deferred to a future update.</div>
+                <button className="btn btn-secondary btn-full" disabled>Restore Disabled in Cloud Mode</button>
+              </div>
+            )}
           </div>
           
           <div className="section-header">

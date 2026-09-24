@@ -20,7 +20,7 @@ import SettingsModal from './components/settings/SettingsModal';
 import { MigrationGuard } from './components/migration/MigrationGuard';
 
 function App() {
-  const { isMalformed, data } = useGymLogData();
+  const { isMalformed, data, cloudStatus } = useGymLogData();
 
   React.useEffect(() => {
     if (localStorage.getItem('gymlog_restore_success') === 'true') {
@@ -34,6 +34,15 @@ function App() {
       <div className="content empty">
         <h1 className="empty-title">Data Error</h1>
         <p className="empty-text">Your GymLog data is malformed and cannot be loaded. It has been preserved safely in storage.</p>
+      </div>
+    );
+  }
+
+  if (cloudStatus === 'error') {
+    return (
+      <div className="content empty">
+        <h1 className="empty-title">Cloud Error</h1>
+        <p className="empty-text">Failed to connect to the cloud database. Please try again later.</p>
       </div>
     );
   }

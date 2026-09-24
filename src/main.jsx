@@ -8,17 +8,21 @@ import { ThemeProvider } from './context/ThemeContext';
 import { FontProvider } from './context/FontContext';
 import { AuthProvider } from './context/AuthContext';
 
+import { MigrationProvider } from './context/MigrationContext';
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <DataProvider>
-          <ThemeProvider>
-            <FontProvider>
-              <App />
-            </FontProvider>
-          </ThemeProvider>
-        </DataProvider>
+        <MigrationProvider>
+          <DataProvider>
+            <ThemeProvider>
+              <FontProvider>
+                <App />
+              </FontProvider>
+            </ThemeProvider>
+          </DataProvider>
+        </MigrationProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
