@@ -56,3 +56,22 @@
 
 ### Supabase Dashboard Configuration Required
 - The SQL file in `supabase/migrations/20260924_initial_gymlog_schema.sql` must be executed in the Supabase SQL Editor to provision the tables.
+
+## Phase 13 — Supabase Migration: Stage 3 (Database Verification)
+
+### Verification Summary
+- **Static Schema Review:** The database schema and RLS policies created in Stage 2 were statically reviewed against the current GymLog `localStorage` constraints.
+- **Ownership Validation:** It was verified that composite parent/child ownership is structurally enforced through the composite foreign keys (e.g., `FOREIGN KEY (parent_id, user_id) REFERENCES parent(id, user_id)`), preventing cross-user structural violations without relying on `SELECT` RLS subqueries.
+- **RLS Validation:** The `FOR ALL USING (auth.uid() = user_id)` policies were statically reviewed. Because `WITH CHECK` natively defaults to the `USING` expression in PostgreSQL, updates attempting to transfer ownership to another user's ID are structurally blocked.
+- **Migration Readiness:** The `TEXT` ID usage aligns with existing `uid()` string formats, meaning existing data can be migrated deterministically.
+
+### Verification Exclusions (Pending Live Test)
+Because the required Supabase environment variables (`VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`) are missing from the environment configuration (no `.env` file exists), no live Supabase operations were performed. The following tests are **pending** until a real Supabase project is configured:
+- Live cross-user isolation tests
+- Live anonymous access tests
+- Live cascade and referential-integrity deletion tests
+
+### Project Status
+- No temporary data, test users, or credentials were created.
+- The `DataContext` and existing application UI remain entirely unchanged.
+- GymLog continues to function fully on `localStorage`.
