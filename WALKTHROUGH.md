@@ -75,3 +75,37 @@ Because the required Supabase environment variables (`VITE_SUPABASE_URL` and `VI
 - No temporary data, test users, or credentials were created.
 - The `DataContext` and existing application UI remain entirely unchanged.
 - GymLog continues to function fully on `localStorage`.
+
+## Phase 13 — Supabase Migration: Stage 4 (Live Verification & Privilege Correction)
+
+### Initial Defect Discovery (Missing Privileges)
+During the initial run of the live verification, a database defect was discovered: the `authenticated` and `anon` roles lacked Postgres table privileges, causing all operations to fail with `permission denied` (bypassing RLS entirely).
+
+### Corrective Migration
+To resolve this without destroying the provisioned schema, a new migration was executed (`supabase/migrations/20260924_correct_gymlog_privileges.sql`). This explicitly revoked `anon` privileges and granted `SELECT`, `INSERT`, `UPDATE`, and `DELETE` on all 7 GymLog tables exclusively to the `authenticated` role.
+
+### Live Verification Results
+Following the privilege correction, the live verification script (`test_live.cjs`) was executed successfully using two temporary authenticated users and an unauthenticated client.
+
+**1. Authenticated User A Operations**
+- **Result:** PASSED. User A successfully performed `SELECT`, `INSERT`, `UPDATE`, and `DELETE` operations on all tables (`workout_days`, `exercises`, `active_sets`, `workout_history`, `workout_history_sets`, `measurements`, `measurement_entries`).
+
+**2. Cross-User Isolation (User B)**
+- **Result:** PASSED. 
+- User B's attempts to `SELECT`, `UPDATE`, or `DELETE` User A's data were successfully blocked by RLS policies.
+- User B's attempts to `INSERT` records under User A's parent IDs were structurally rejected by the composite foreign key constraints (`violates foreign key constraint`).
+- User B's attempts to escalate privileges by updating a `user_id` or `parent_id` to User A's ownership were strictly blocked.
+
+**3. Anonymous Access**
+- **Result:** PASSED. Unauthenticated attempts to access the database were blocked by Postgres role privileges (`permission denied`).
+
+**4. Constraints**
+- **Result:** PASSED. Inserts with negative/zero reps, weight, set numbers, and positions correctly triggered database `CHECK` constraint violations. Missing required fields triggered `NOT NULL` violations.
+
+**5. Cascade Deletion**
+- **Result:** PASSED. Deleting a parent `workout_day` automatically cascaded to delete the corresponding `exercises`, `active_sets`, `workout_history`, and `workout_history_sets`. Deleting `measurements` cascaded to `measurement_entries`. No orphaned records remained.
+
+**6. Cleanup & Integrity**
+- **Result:** All temporary records created during the test were cleaned up successfully. No existing GymLog data was touched, and the test scripts did not alter the existing `DataContext` or `localStorage` architecture.
+
+*(Note: Temporary Auth test accounts must be manually deleted from the Supabase Authentication Dashboard, as the publishable API cannot delete them.)*
