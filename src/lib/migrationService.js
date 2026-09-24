@@ -94,9 +94,9 @@ export const MigrationService = {
     }
   },
 
-  verifyMigration: async (localData) => {
+  verifyMigration: async (localData, cloudDataOverride = null) => {
     // Reconstruct full cloud domain
-    const cloudData = await SupabaseService.fetchGymLogData();
+    const cloudData = cloudDataOverride || await SupabaseService.fetchGymLogData();
     
     // Arrays for easy matching
     const localDays = localData.days || [];
@@ -185,6 +185,42 @@ export const MigrationService = {
           throw new IntegrityError(`Measurement entry mismatch at meas ${lm.id} pos ${j}`);
         }
       }
+    }
+  },
+
+  determineConflict: async (localData, cloudData) => {
+    const localHasData = (localData?.days?.length > 0) || (localData?.measurements?.length > 0);
+    const cloudHasData = (cloudData?.days?.length > 0) || (cloudData?.measurements?.length > 0);
+
+    if (!localHasData && !cloudHasData) return 'NoData';
+    if (!localHasData && cloudHasData) return 'CloudOnly';
+    if (localHasData && !cloudHasData) return 'LocalOnly';
+
+    try {
+      await MigrationService.verifyMigration(localData, cloudData);
+      return 'Matching';
+    } catch (e) {
+      if (e instanceof IntegrityError && e.mismatchType === 'CloudExtraDataMismatch') {
+         return 'CloudExtraData';
+      }
+      return 'Conflict';
+    }
+  },
+
+  replaceCloudData: async (localData) => {
+    await MigrationService.setMigrationState('in_progress');
+    try {
+      const { error } = await supabase.rpc('replace_gymlog_data', { payload: localData });
+      if (error) throw new Error(error.message);
+
+      // Verify success directly against the canonical localData
+      await MigrationService.verifyMigration(localData);
+
+      await MigrationService.setMigrationState('completed');
+      return { success: true };
+    } catch (error) {
+      await MigrationService.setMigrationState('failed');
+      return { success: false, reason: 'MigrationFailure', message: error.message };
     }
   }
 };

@@ -17,6 +17,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 
 import { SettingsProvider } from './context/SettingsContext';
 import SettingsModal from './components/settings/SettingsModal';
+import { MigrationGuard } from './components/migration/MigrationGuard';
 
 function App() {
   const { isMalformed, data } = useGymLogData();
@@ -43,21 +44,23 @@ function App() {
 
   return (
     <SettingsProvider>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/day/:dayId" element={<WorkoutDay />} />
-        <Route path="/day/:dayId/exercise/:exerciseId" element={<ExerciseDetail />} />
-        <Route path="/day/:dayId/exercise/:exerciseId/progress" element={<ExerciseProgress />} />
-        
-        <Route path="/measurements" element={<Measurements />} />
-        <Route path="/measurements/:measId" element={<MeasurementDetail />} />
-        <Route path="/measurements/:measId/progress" element={<MeasurementProgress />} />
+      <MigrationGuard>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/day/:dayId" element={<WorkoutDay />} />
+          <Route path="/day/:dayId/exercise/:exerciseId" element={<ExerciseDetail />} />
+          <Route path="/day/:dayId/exercise/:exerciseId/progress" element={<ExerciseProgress />} />
 
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-      </Routes>
-      <BottomNav />
-      <SettingsModal />
+          <Route path="/measurements" element={<Measurements />} />
+          <Route path="/measurements/:measId" element={<MeasurementDetail />} />
+          <Route path="/measurements/:measId/progress" element={<MeasurementProgress />} />
+
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+        </Routes>
+        <BottomNav />
+        <SettingsModal />
+      </MigrationGuard>
     </SettingsProvider>
   );
 }
