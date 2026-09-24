@@ -27,7 +27,7 @@ export default function SettingsModal() {
   };
 
   const handleRestore = async () => {
-    if (sourceMode === 'cloud') return;
+    if (sourceMode !== 'guest') return;
     try {
       const file = await triggerFilePicker('.json');
       if (!file) return; // Cancelled
@@ -93,7 +93,7 @@ export default function SettingsModal() {
               <div style={{ fontSize: '0.875rem', color: 'var(--text2)', marginBottom: '0.85rem' }}>Create a complete backup of all GymLog data.</div>
               <button className="btn btn-primary btn-full" onClick={handleBackup}>Backup</button>
             </div>
-            {sourceMode !== 'cloud' ? (
+            {sourceMode === 'guest' ? (
               <div className="card" style={{ marginBottom: '0', padding: '1rem' }}>
                 <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.4rem', color: 'var(--text)' }}>Restore Backup</div>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text2)', marginBottom: '0.85rem' }}>Restore a previously created GymLog backup.</div>
@@ -102,8 +102,8 @@ export default function SettingsModal() {
             ) : (
               <div className="card" style={{ marginBottom: '0', padding: '1rem', opacity: 0.6 }}>
                 <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.4rem', color: 'var(--text)' }}>Restore Backup</div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text2)', marginBottom: '0.85rem' }}>Cloud restore functionality is deferred to a future update.</div>
-                <button className="btn btn-secondary btn-full" disabled>Restore Disabled in Cloud Mode</button>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text2)', marginBottom: '0.85rem' }}>Restore is unavailable while connected to the cloud or resolving conflicts.</div>
+                <button className="btn btn-secondary btn-full" disabled>Restore Disabled</button>
               </div>
             )}
           </div>

@@ -17,9 +17,7 @@ export function DataProvider({ children }) {
   const [cloudStatus, setCloudStatus] = useState('idle'); // 'idle' | 'loading' | 'ready' | 'error'
 
   const currentUserIdRef = useRef(user?.id);
-  useEffect(() => {
-    currentUserIdRef.current = user?.id;
-  }, [user?.id]);
+  currentUserIdRef.current = user?.id; // Synchronize explicitly during render
 
   useEffect(() => {
     let active = true;
@@ -337,7 +335,7 @@ export function DataProvider({ children }) {
       const mappedSets = ex.sets.map(s => ({
         num: s.num,
         reps: s.reps,
-        weight: s.weigh
+        weight: s.weight
       }));
 
       performCloudMutation(() => SupabaseService.saveSession(exId, historyId, logDate, mappedSets));
@@ -350,7 +348,7 @@ export function DataProvider({ children }) {
       const historySets = ex.sets.map(s => ({
         num: s.num,
         reps: s.reps,
-        weight: s.weigh
+        weight: s.weight
       }));
 
       const sessionObj = {
