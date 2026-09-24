@@ -5,6 +5,8 @@ import { generateBackup } from '../../utils/backup';
 import { triggerFilePicker, readFileAsText } from '../../utils/helpers';
 import { validateBackupFile } from '../../utils/restore';
 import BackupPreviewModal from './BackupPreviewModal';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function SettingsModal() {
   const { isSettingsOpen, setIsSettingsOpen } = useSettings();
@@ -94,12 +96,57 @@ export default function SettingsModal() {
               <button className="btn btn-secondary btn-full" onClick={handleRestore}>Restore</button>
             </div>
           </div>
+          
+          <div className="section-header">
+            <span className="section-title">Account (Cloud Sync)</span>
+          </div>
+          <div className="card" style={{ marginBottom: '0', padding: '1rem' }}>
+            <AuthSection />
+          </div>
         </div>
       </div>
 
       {pendingBackup && (
         <BackupPreviewModal backup={pendingBackup} onClose={() => setPendingBackup(null)} />
       )}
+    </>
+  );
+}
+
+// Subcomponent to handle Auth display
+function AuthSection() {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { setIsSettingsOpen } = useSettings();
+
+  const handleLoginClick = () => {
+    setIsSettingsOpen(false);
+    navigate('/auth');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (e) {
+      alert('Failed to sign out: ' + e.message);
+    }
+  };
+
+  if (user) {
+    return (
+      <>
+        <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.4rem', color: 'var(--text)' }}>Logged in as</div>
+        <div style={{ fontSize: '0.875rem', color: 'var(--text2)', marginBottom: '0.85rem', wordBreak: 'break-all' }}>{user.email}</div>
+        <button className="btn btn-secondary btn-full" onClick={handleLogout}>Log Out</button>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.4rem', color: 'var(--text)' }}>Sync to Cloud</div>
+      <div style={{ fontSize: '0.875rem', color: 'var(--text2)', marginBottom: '0.85rem' }}>Log in to access your data across devices.</div>
+      <button className="btn btn-primary btn-full" onClick={handleLoginClick}>Login / Sign Up</button>
     </>
   );
 }

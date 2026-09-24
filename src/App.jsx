@@ -12,6 +12,9 @@ import MeasurementDetail from './pages/MeasurementDetail';
 import ExerciseProgress from './pages/ExerciseProgress';
 import MeasurementProgress from './pages/MeasurementProgress';
 
+import AuthPage from './pages/AuthPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+
 import { SettingsProvider } from './context/SettingsContext';
 import SettingsModal from './components/settings/SettingsModal';
 
@@ -49,6 +52,9 @@ function App() {
         <Route path="/measurements" element={<Measurements />} />
         <Route path="/measurements/:measId" element={<MeasurementDetail />} />
         <Route path="/measurements/:measId/progress" element={<MeasurementProgress />} />
+
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Routes>
       <BottomNav />
       <SettingsModal />

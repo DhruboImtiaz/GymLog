@@ -6,17 +6,20 @@ import './index.css';
 import { DataProvider } from './context/DataContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { FontProvider } from './context/FontContext';
+import { AuthProvider } from './context/AuthContext';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <DataProvider>
-        <ThemeProvider>
-          <FontProvider>
-            <App />
-          </FontProvider>
-        </ThemeProvider>
-      </DataProvider>
+      <AuthProvider>
+        <DataProvider>
+          <ThemeProvider>
+            <FontProvider>
+              <App />
+            </FontProvider>
+          </ThemeProvider>
+        </DataProvider>
+      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
 );
