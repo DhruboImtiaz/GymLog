@@ -192,7 +192,7 @@ export const SupabaseService = {
         reps: s.reps,
         weight: s.weight
       }));
-      const { error: updError } = await supabase.from('active_sets').upsert(payload, { onConflict: 'id' });
+      const { error: updError } = await supabase.from('active_sets').upsert(payload, { onConflict: 'id, user_id' });
       if (updError) throw new RepositoryError(`Partial failure: Set deleted, but renumbering failed: ${updError.message}`);
     }
   },
@@ -338,7 +338,7 @@ export const SupabaseService = {
       weight: s.weight
     }));
     // No composite constraint on active_sets, rely on id
-    const { error } = await supabase.from('active_sets').upsert(payload, { onConflict: 'id' });
+    const { error } = await supabase.from('active_sets').upsert(payload, { onConflict: 'id, user_id' });
     if (error) throw new RepositoryError(`Batch upsert active sets failed: ${error.message}`);
   },
 
@@ -396,7 +396,7 @@ export const SupabaseService = {
       unit: e.unit
     }));
     // No composite constraint on measurement_entries, rely on id
-    const { error } = await supabase.from('measurement_entries').upsert(payload, { onConflict: 'id' });
+    const { error } = await supabase.from('measurement_entries').upsert(payload, { onConflict: 'id, user_id' });
     if (error) throw new RepositoryError(`Batch upsert measurement entries failed: ${error.message}`);
   },
 
