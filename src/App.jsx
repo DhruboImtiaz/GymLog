@@ -22,10 +22,12 @@ import { MigrationGuard } from './components/migration/MigrationGuard';
 function App() {
   const { isMalformed, data, cloudStatus, cloudError, clearCloudError } = useGymLogData();
 
+  const [restoreSuccess, setRestoreSuccess] = React.useState(false);
+
   React.useEffect(() => {
     if (localStorage.getItem('gymlog_restore_success') === 'true') {
       localStorage.removeItem('gymlog_restore_success');
-      alert('Data restored successfully');
+      setRestoreSuccess(true);
     }
   }, []);
 
@@ -54,6 +56,12 @@ function App() {
   return (
     <SettingsProvider>
       <MigrationGuard>
+        {restoreSuccess && (
+          <div style={{ background: 'var(--success, #28a745)', color: '#fff', padding: '10px', textAlign: 'center', fontWeight: 'bold', zIndex: 1000, position: 'relative' }}>
+            Data restored successfully
+            <button onClick={() => setRestoreSuccess(false)} style={{ marginLeft: '10px', background: 'transparent', border: '1px solid #fff', color: '#fff', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}>Dismiss</button>
+          </div>
+        )}
         {cloudError && (
           <div style={{ background: 'var(--danger, #ff4444)', color: '#fff', padding: '10px', textAlign: 'center', fontWeight: 'bold', zIndex: 1000, position: 'relative' }}>
             {cloudError}
