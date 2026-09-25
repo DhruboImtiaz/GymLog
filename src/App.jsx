@@ -20,7 +20,7 @@ import SettingsModal from './components/settings/SettingsModal';
 import { MigrationGuard } from './components/migration/MigrationGuard';
 
 function App() {
-  const { isMalformed, data, cloudStatus } = useGymLogData();
+  const { isMalformed, data, cloudStatus, cloudError, clearCloudError } = useGymLogData();
 
   React.useEffect(() => {
     if (localStorage.getItem('gymlog_restore_success') === 'true') {
@@ -54,6 +54,12 @@ function App() {
   return (
     <SettingsProvider>
       <MigrationGuard>
+        {cloudError && (
+          <div style={{ background: 'var(--danger, #ff4444)', color: '#fff', padding: '10px', textAlign: 'center', fontWeight: 'bold', zIndex: 1000, position: 'relative' }}>
+            {cloudError}
+            <button onClick={clearCloudError} style={{ marginLeft: '10px', background: 'transparent', border: '1px solid #fff', color: '#fff', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}>Dismiss</button>
+          </div>
+        )}
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/day/:dayId" element={<WorkoutDay />} />

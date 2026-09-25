@@ -15,6 +15,9 @@ export function DataProvider({ children }) {
   const [isMalformed, setIsMalformed] = useState(false);
   const [sourceMode, setSourceMode] = useState('loading'); // 'guest' | 'migration' | 'cloud' | 'loading'
   const [cloudStatus, setCloudStatus] = useState('idle'); // 'idle' | 'loading' | 'ready' | 'error'
+  const [cloudError, setCloudError] = useState(null);
+
+  const clearCloudError = useCallback(() => setCloudError(null), []);
 
   const currentUserIdRef = useRef(user?.id);
   currentUserIdRef.current = user?.id; // Synchronize explicitly during render
@@ -85,16 +88,27 @@ export function DataProvider({ children }) {
     const requestId = currentUserIdRef.current;
     if (!requestId || sourceMode !== 'cloud') return;
 
+    setCloudError(null);
+
     try {
       await mutationFn();
+
+      // Protect against identity switch during the mutation itself
+      if (currentUserIdRef.current !== requestId) return;
+
       // Fetch authoritative state after mutation
       const newCloudData = await SupabaseService.fetchGymLogData();
+
+      // Protect against identity switch during the refetch
       if (currentUserIdRef.current === requestId) {
         setData(newCloudData);
       }
     } catch (err) {
+      // Protect against identity switch before setting error
+      if (currentUserIdRef.current !== requestId) return;
+
       console.error('Cloud mutation failed:', err);
-      // Data remains unchanged, no fallback to localStorage
+      setCloudError(err.message || 'Failed to sync with cloud.');
     }
   }, [sourceMode]);
 
@@ -540,6 +554,8 @@ export function DataProvider({ children }) {
     isMalformed,
     sourceMode,
     cloudStatus,
+    cloudError,
+    clearCloudError,
     createDay,
     renameDay,
     deleteDay,
