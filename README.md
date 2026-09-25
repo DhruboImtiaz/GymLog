@@ -1,75 +1,85 @@
-# GymLog — The Hybrid Offline-First Workout Tracker
+# GymLog — Workout Tracker
 
-[![React](https://img.shields.io/badge/React-18-blue.svg)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-5-646CFF.svg)](https://vitejs.dev/)
-[![Supabase](https://img.shields.io/badge/Supabase-Backend-3ECF8E.svg)](https://supabase.com/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+> **Track every lift. Beat every session.**
 
-> **Track every lift. Beat every session. Anytime, anywhere.**
-
-GymLog is an offline-first Progressive Web App (PWA) for tracking gym workouts and body measurements. It features a **hybrid architecture** that allows you to use the app completely offline as a guest (`localStorage`), or seamlessly log in to sync your data securely across devices via **Supabase**.
+GymLog is an offline-first Progressive Web App (PWA) for tracking gym workouts and body measurements. It features a hybrid architecture that allows you to use the app completely offline as a guest (`localStorage`), or securely log in to sync your data across devices using a cloud backend.
 
 **Live:** [gymlog7.netlify.app](https://gymlog7.netlify.app/)
 
 ---
 
-## ⚡ Features
+## Features
 
-### 🏋️‍♂️ Workout & Measurement Logging
-- **Custom Routines:** Create named workout days (e.g., Push, Pull, Legs) and add exercises.
-- **Set Tracking:** Log weight × reps per set with instant inline editing.
-- **Body Measurements:** Track custom metrics (Weight, Waist, Arms) with specific units (kg, lbs, cm, %, etc.).
+### Workout Logging
+- Create named **workout days** (e.g. Push, Pull, Legs)
+- Add **exercises** to each day with custom sets
+- Log **weight × reps** per set with inline editing
+- Rename or delete days and exercises at any time
 
-### 📊 Progress Charts
-- **Visual Analytics:** Interactive per-exercise and per-measurement progression charts powered by [Chart.js](https://www.chartjs.org/).
-- **Chronological History:** Detailed historical logs beneath each chart, filterable by month and year.
+### Progress Charts
+- Per-exercise **progression charts** powered by [Chart.js](https://www.chartjs.org/)
+- Filter history by **month and year**
+- Chronological history view beneath each chart
 
-### ☁️ Hybrid Data Architecture (Guest & Cloud)
-- **Guest Mode:** Works 100% offline using `localStorage` immediately upon load. No account required.
-- **Cloud Sync:** Log in with Supabase Authentication to automatically sync data across all your devices.
-- **Smart Conflict Resolution:** If you create data offline and later log in, GymLog detects conflicts and safely guides you through merging or replacing data.
-- **Atomic Operations:** Cloud restores utilize ACID-compliant PostgreSQL RPCs (`replace_gymlog_data`) to guarantee data integrity.
+### Body Measurements
+- Create custom **measurement types** (e.g. Weight, Waist, Arms)
+- Log entries with a **value and unit** (kg, cm, lbs, %, inch, etc.)
+- View a dedicated **progress chart** per measurement type
+- Month/year filtering on measurement charts
 
-### 💾 Backup & Restore
-- **Data Portability:** Download your entire workout history as a structured JSON backup.
-- **Deep Validation:** Restoring backups validates data boundaries (preventing impossible dates or malformed schemas) before mutating state.
-- **Backward Compatibility:** Legacy backups are automatically migrated to the newest schema format upon restoration.
+### Hybrid Data Architecture
+- **Guest Mode:** Use the app completely offline with all data living securely in the browser's `localStorage`. No account required.
+- **Cloud Sync:** Log in securely via Supabase Authentication to back up and synchronize your data across multiple devices.
+- **Offline-to-Cloud Migration:** Automatically detects offline data upon login and provides safe, atomic conflict resolution workflows to merge or replace existing cloud data.
 
-### 📱 PWA — Native Mobile Experience
-- **Installable:** Add to Home Screen on iOS and Android for a seamless app-shell experience.
-- **Offline Ready:** Custom Service Worker (`sw.js`) caches the application shell.
-- **Deep Linking:** Full `history.pushState` routing allows standard URL sharing and navigation.
+### Backup & Restore
+- **Offline Data Portability:** Download your entire workout and measurement history as a JSON backup file.
+- **Robust Migration System:** Ensures backups from older schema versions automatically migrate to the latest format upon restoring.
+- **Safe Imports:** Comprehensive validation checks and atomic database transactions guarantee that a corrupt or incompatible backup never overwrites your existing data.
 
-### 🎨 Personalization
-- **Themes:** Persistent Light & Dark modes.
-- **Accessibility:** Dynamic font-size scaling via global settings.
+### PWA — Installable on Mobile
+- Add to Home Screen on iOS and Android for a native app feel
+- Standalone display mode, portrait orientation locked
+- Status bar and splash screen configured for iOS (`apple-mobile-web-app-capable`)
+- `manifest.json` with 192 × 512 icons included
+
+### Personalization
+- Dark mode by default (`#0a0a0a` background)
+- Light/Dark theme toggle persisted across sessions
+- Dynamic font-size scaling via global settings
+
+### Browser Navigation
+- Full `history.pushState` / `popstate` support — the browser back button works correctly between pages
+- Deep-linkable via Netlify redirects (`_redirects`) — all routes fall back to `index.html`
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-| Component | Technology |
+| Concern | Solution |
 |---|---|
-| **Frontend** | [React](https://react.dev/) + [Vite](https://vitejs.dev/) + React Router |
-| **Backend & Auth** | [Supabase](https://supabase.com/) (PostgreSQL, GoTrue Auth) |
-| **Charts** | [Chart.js](https://www.chartjs.org/) + react-chartjs-2 |
-| **Fonts** | Bebas Neue (Display) + DM Sans (Body) |
-| **Hosting** | Vercel / Netlify |
+| Framework | [React](https://react.dev/) + [Vite](https://vitejs.dev/) |
+| Routing | [React Router](https://reactrouter.com/) |
+| Backend & Auth | [Supabase](https://supabase.com/) (PostgreSQL + GoTrue) |
+| Charts | [Chart.js](https://cdn.jsdelivr.net/npm/chart.js) + react-chartjs-2 |
+| Fonts | [Bebas Neue](https://fonts.google.com/specimen/Bebas+Neue) (display) + [DM Sans](https://fonts.google.com/specimen/DM+Sans) (body) via Google Fonts |
+| Local Storage | `localStorage` (Guest Mode) |
+| Deployment | [Netlify](https://www.netlify.com/) |
+| PWA | Custom vanilla Service Worker (`sw.js`) + `manifest.json` for offline app-shell caching |
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
-To run GymLog locally with cloud functionality, you need a [Supabase](https://supabase.com) project. 
+To run GymLog locally with cloud functionality, you need a Supabase project.
 
-1. Create a Supabase project.
-2. Execute the SQL migrations to create the `workout_days`, `exercises`, `active_sets`, `workout_history`, `measurements`, and `measurement_entries` tables, along with the `replace_gymlog_data` RPC function.
+1. Create a [Supabase](https://supabase.com) project.
+2. Execute the provided SQL migrations to create the required tables and the `replace_gymlog_data` RPC function.
 
 ### Installation
-
 ```bash
-# Clone the repository
+# Clone the repo
 git clone https://github.com/your-username/gymlog.git
 cd gymlog
 
@@ -86,7 +96,6 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 ### Run Locally
-
 ```bash
 # Start development server
 npm run dev
@@ -95,29 +104,37 @@ npm run dev
 npm run build
 ```
 
-Visit `http://localhost:3000` to start lifting.
+Then visit `http://localhost:3000`.
 
 ---
 
-## 📁 Architecture Overview
+## Deployment
 
-GymLog manages state strictly via React Contexts, utilizing a pessimistic update strategy for cloud mutations to guarantee database consistency before updating the UI.
+The app is deployed on **Netlify**. Push to a connected GitHub repo and Netlify will deploy automatically. The `_redirects` file rewrites all paths to `index.html` so navigation works correctly on refresh or direct URL access.
 
-- `DataContext.jsx`: The global orchestrator for data fetching and CRUD mutations.
-- `MigrationContext.jsx`: Handles the state machine for local-to-cloud data synchronization and conflict resolution.
-- `AuthContext.jsx`: Manages the Supabase user session lifecycle.
-- `repository.js`: The strict boundary for all Supabase API and RPC interactions.
-
----
-
-## 📝 Roadmap
-
-- [ ] **Workout Templates:** Reusable blueprints for quick day generation.
-- [ ] **Rest Timer:** In-app timer for tracking recovery between sets.
-- [ ] **Global Unit Preferences:** Unified global toggle for kg vs lbs.
+```text
+/* /index.html 200
+```
 
 ---
 
-## 📄 License
+## Data Storage
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+GymLog implements a secure hybrid approach:
+
+- **Guest Mode:** All data is stored in the browser's `localStorage`. Clearing browser storage or uninstalling the PWA will erase all local data.
+- **Cloud Mode:** All authenticated data is persisted strictly in the cloud via Supabase PostgreSQL, utilizing Row Level Security (RLS) to ensure absolute data privacy. Local state is kept strictly pessimistic to prevent out-of-sync conflicts.
+
+---
+
+## Roadmap / Known Limitations
+
+- [ ] Workout templates / reusable day blueprints
+- [ ] Rest timer
+- [ ] Unit preference (kg vs lbs) — currently per-entry
+
+---
+
+## License
+
+MIT
