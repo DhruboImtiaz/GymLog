@@ -103,20 +103,20 @@ export default function Dashboard() {
       {/* Create Modal */}
       {isCreateOpen && (
         <div className="modal-overlay open" onClick={(e) => { if (e.target.classList.contains('modal-overlay')) setIsCreateOpen(false); }}>
-          <div className="modal-box">
+          <form className="modal-box" onSubmit={(e) => { e.preventDefault(); handleCreate(); }}>
             <div className="modal-header">
               <span className="modal-title">New Workout Day</span>
-              <button className="modal-close" onClick={() => setIsCreateOpen(false)}>×</button>
+              <button type="button" className="modal-close" onClick={() => setIsCreateOpen(false)}>×</button>
             </div>
             <div className="form-group">
               <label className="form-label">Day Name</label>
               <input type="text" className="form-input" placeholder="e.g. Push Day, Leg Day..." value={newDayName} onChange={(e) => setNewDayName(e.target.value)} autoFocus />
             </div>
             <div className="modal-actions">
-              <button className="btn btn-ghost" onClick={() => setIsCreateOpen(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleCreate}>Create</button>
+              <button type="button" className="btn btn-ghost" onClick={() => setIsCreateOpen(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary">Create</button>
             </div>
-          </div>
+          </form>
         </div>
       )}
 

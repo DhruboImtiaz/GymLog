@@ -119,7 +119,7 @@ export default function Measurements() {
       {/* Add Modal */}
       {isAddOpen && (
         <div className="modal-overlay open">
-          <div className="modal-box">
+          <form className="modal-box" onSubmit={(e) => { e.preventDefault(); handleCreate(); }}>
             <div className="modal-title">New Measurement</div>
             <input
               type="text"
@@ -130,10 +130,10 @@ export default function Measurements() {
               autoFocus
             />
             <div className="modal-actions">
-              <button className="btn btn-ghost" onClick={() => setIsAddOpen(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleCreate}>Create</button>
+              <button type="button" className="btn btn-ghost" onClick={() => setIsAddOpen(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary">Create</button>
             </div>
-          </div>
+          </form>
         </div>
       )}
 

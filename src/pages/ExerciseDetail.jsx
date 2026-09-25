@@ -69,7 +69,28 @@ export default function ExerciseDetail() {
 
         <div className="exercise-desktop-split">
           <div className="exercise-split-right">
-            <LastSessionCard history={exercise.history} />
+            <div className="recent-workouts-mobile">
+              <LastSessionCard history={exercise.history} />
+            </div>
+
+            <div className="recent-workouts-desktop">
+              <div className="section-header" style={{ marginTop: 0 }}>
+                <span className="section-title">Recent Workouts</span>
+              </div>
+              {(!exercise.history || exercise.history.length === 0) ? (
+                <div className="empty" style={{ margin: 0, padding: '1rem', minHeight: 'auto' }}>
+                  <div className="empty-title" style={{ fontSize: '1rem' }}>No history found</div>
+                  <p className="empty-text" style={{ margin: 0, fontSize: '0.85rem' }}>Previous workouts will appear here.</p>
+                </div>
+              ) : (
+                [...(exercise.history || [])]
+                  .sort((a, b) => new Date(b.date) - new Date(a.date))
+                  .slice(0, 3)
+                  .map((session, i) => (
+                    <LastSessionCard key={i} history={[session]} label="Workout" />
+                  ))
+              )}
+            </div>
           </div>
 
           <div className="exercise-split-left">

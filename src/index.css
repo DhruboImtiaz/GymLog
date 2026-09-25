@@ -482,3 +482,12 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
   .exercise-split-right { order: 2; margin-bottom: 0; }
   .exercise-split-left { order: 1; }
 }
+
+/* Recent Workouts Split Layout Overrides */
+.recent-workouts-desktop { display: none; }
+.recent-workouts-desktop > .last-card { margin-bottom: 1rem; }
+
+@media (min-width: 1024px) {
+  .recent-workouts-mobile { display: none; }
+  .recent-workouts-desktop { display: block; }
+}

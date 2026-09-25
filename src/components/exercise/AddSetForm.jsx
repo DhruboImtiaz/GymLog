@@ -43,7 +43,7 @@ export default function AddSetForm({ onAdd, dateOffset, setDateOffset }) {
   };
 
   return (
-    <div className="add-card">
+    <form className="add-card" onSubmit={(e) => { e.preventDefault(); handleAdd(); }}>
       <div className="add-title">Log a Set</div>
       
       <DateSelector offset={dateOffset} setOffset={setDateOffset} />
@@ -62,8 +62,8 @@ export default function AddSetForm({ onAdd, dateOffset, setDateOffset }) {
             onChange={(e) => setReps(e.target.value)}
           />
           <div className="quick-row">
-            <button className="qbtn" onClick={() => adj('reps', 1)}>+1</button>
-            <button className="qbtn" onClick={() => adj('reps', -1)}>−1</button>
+            <button type="button" className="qbtn" onClick={() => adj('reps', 1)}>+1</button>
+            <button type="button" className="qbtn" onClick={() => adj('reps', -1)}>−1</button>
           </div>
         </div>
         
@@ -81,14 +81,14 @@ export default function AddSetForm({ onAdd, dateOffset, setDateOffset }) {
             onChange={(e) => setWeight(e.target.value)}
           />
           <div className="quick-row">
-            <button className="qbtn" onClick={() => adj('weight', 2.5)}>+2.5</button>
-            <button className="qbtn" onClick={() => adj('weight', 5)}>+5</button>
-            <button className="qbtn" onClick={() => adj('weight', -2.5)}>−2.5</button>
+            <button type="button" className="qbtn" onClick={() => adj('weight', 2.5)}>+2.5</button>
+            <button type="button" className="qbtn" onClick={() => adj('weight', 5)}>+5</button>
+            <button type="button" className="qbtn" onClick={() => adj('weight', -2.5)}>−2.5</button>
           </div>
         </div>
       </div>
       
-      <button className="btn btn-primary btn-full" onClick={handleAdd}>Log Set</button>
-    </div>
+      <button type="submit" className="btn btn-primary btn-full">Log Set</button>
+    </form>
   );
 }

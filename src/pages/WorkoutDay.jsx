@@ -112,20 +112,20 @@ export default function WorkoutDay() {
       {/* Add Modal */}
       {isAddOpen && (
         <div className="modal-overlay open" onClick={(e) => { if (e.target.classList.contains('modal-overlay')) setIsAddOpen(false); }}>
-          <div className="modal-box">
+          <form className="modal-box" onSubmit={(e) => { e.preventDefault(); handleAdd(); }}>
             <div className="modal-header">
               <span className="modal-title">Add Exercise</span>
-              <button className="modal-close" onClick={() => setIsAddOpen(false)}>×</button>
+              <button type="button" className="modal-close" onClick={() => setIsAddOpen(false)}>×</button>
             </div>
             <div className="form-group">
               <label className="form-label">Exercise Name</label>
               <input type="text" className="form-input" placeholder="e.g. Bench Press, Squat..." value={newExName} onChange={(e) => setNewExName(e.target.value)} autoFocus />
             </div>
             <div className="modal-actions">
-              <button className="btn btn-ghost" onClick={() => setIsAddOpen(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleAdd}>Add</button>
+              <button type="button" className="btn btn-ghost" onClick={() => setIsAddOpen(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary">Add</button>
             </div>
-          </div>
+          </form>
         </div>
       )}
 

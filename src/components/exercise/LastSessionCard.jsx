@@ -1,7 +1,7 @@
 import React from 'react';
 import { fmt } from '../../utils/helpers';
 
-export default function LastSessionCard({ history }) {
+export default function LastSessionCard({ history, label = 'Last Workout' }) {
   if (!history || history.length === 0) return null;
 
   // Since saveSession sorts the array before saving, the last element is definitively the latest.
@@ -10,7 +10,7 @@ export default function LastSessionCard({ history }) {
   return (
     <div className="last-card">
       <div className="last-header">
-        <span className="last-label">Last Workout</span>
+        <span className="last-label">{label}</span>
         <span className="last-date">{fmt(lastSession.date)}</span>
       </div>
       {(lastSession.sets || []).map((s, idx) => (
