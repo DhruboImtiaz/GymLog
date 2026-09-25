@@ -528,3 +528,42 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
     border-radius: 4px;
   }
 }
+
+/* Migration Modal Responsive Styles */
+.migration-modal {
+  background: var(--bg-secondary);
+  padding: 24px 20px;
+  border-radius: 12px;
+  max-width: 90vw;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  color: var(--text-primary);
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .migration-modal {
+    padding: 40px;
+    max-width: 560px;
+  }
+}
+
+.migration-btn-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.migration-btn-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.migration-btn-desc {
+  font-size: 0.85rem;
+  font-weight: normal;
+  opacity: 0.9;
+  line-height: 1.4;
+  white-space: normal;
+}

@@ -5,8 +5,8 @@ export function MigrationModal({ conflictType, migrationState, actionError, onKe
 
   return (
     <div style={styles.overlay}>
-      <div style={styles.modal} className="content">
-        <h2 style={{ marginTop: 0 }}>Account Sync Required</h2>
+      <div className="migration-modal">
+        <h2 style={{ marginTop: 0, fontSize: '1.5rem', marginBottom: '8px', textTransform: 'uppercase' }}>Account Sync Required</h2>
         
         {migrationState === 'failed' && !actionError && (
           <div style={{ background: '#ffcccc', color: '#cc0000', padding: '10px', borderRadius: '4px', marginBottom: '15px' }}>
@@ -30,14 +30,22 @@ export function MigrationModal({ conflictType, migrationState, actionError, onKe
           </>
         ) : isConflict ? (
           <>
-            <p><strong>Cloud Data Conflict Detected</strong></p>
-            <p>We detected existing data in your cloud account that conflicts with your local data.</p>
-            <p>Please choose which data you want to keep. Stage 5D will use your choice as the authoritative source of truth.</p>
+            <h3 style={{ marginTop: 0, color: 'var(--accent)', fontSize: '1.1rem', marginBottom: '20px', fontWeight: '600' }}>Cloud Data Conflict Detected</h3>
+            <p style={{ maxWidth: '450px', margin: '0 auto 15px', lineHeight: '1.5' }}>
+              We detected existing data in your cloud account that conflicts with your local data.
+            </p>
+            <p style={{ maxWidth: '450px', margin: '0 auto 30px', lineHeight: '1.5' }}>
+              Please choose which data you want to keep.
+            </p>
             
-            <div style={styles.conflictActions}>
-              <button className="btn btn-primary" onClick={onKeepCloud} style={{ width: '100%', marginBottom: '10px' }}>
-                Keep Cloud Data
-                <div style={styles.btnSubtext}>(Your local data will not be uploaded, cloud is authoritative)</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <button className="btn btn-primary" onClick={onKeepCloud} style={{ width: '100%', padding: '16px', height: 'auto' }}>
+                <div className="migration-btn-content">
+                  <span className="migration-btn-title">KEEP CLOUD DATA</span>
+                  <div className="migration-btn-desc">
+                    Your local data will not be uploaded. Cloud is authoritative.
+                  </div>
+                </div>
               </button>
               
               <button 
@@ -47,17 +55,21 @@ export function MigrationModal({ conflictType, migrationState, actionError, onKe
                     onReplaceCloud();
                   }
                 }} 
-                style={{ width: '100%', marginBottom: '10px', background: 'var(--danger-color)' }}
+                style={{ width: '100%', padding: '16px', height: 'auto', background: 'var(--danger-color)' }}
               >
-                Replace Cloud With Local
-                <div style={styles.btnSubtext}>(DESTRUCTIVE: Existing cloud data will be permanently overwritten)</div>
+                <div className="migration-btn-content">
+                  <span className="migration-btn-title">REPLACE CLOUD WITH LOCAL</span>
+                  <div className="migration-btn-desc">
+                    Destructive — existing cloud data will be permanently overwritten.
+                  </div>
+                </div>
               </button>
             </div>
           </>
         ) : null}
 
-        <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <button className="btn" onClick={onCancel} style={{ background: 'transparent', color: 'var(--text-secondary)' }}>
+        <div style={{ marginTop: '30px', textAlign: 'center' }}>
+          <button className="btn" onClick={onCancel} style={{ background: 'transparent', color: 'var(--text2)' }}>
             Cancel for Now
           </button>
         </div>

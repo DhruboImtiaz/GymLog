@@ -151,9 +151,9 @@ export default function Measurements() {
               autoFocus
             />
             <div className="modal-actions">
-              <button className="btn btn-ghost" onClick={() => setRenameId(null)}>Cancel</button>
               <button className="btn btn-danger" onClick={handleDelete}>Delete</button>
-              <button className="btn btn-primary" onClick={handleRename}>Save</button>
+              <button type="button" className="btn btn-ghost" onClick={() => setRenameId(null)}>Cancel</button>
+              <button type="submit" className="btn btn-primary" onClick={handleRename}>Save</button>
             </div>
           </div>
         </div>
