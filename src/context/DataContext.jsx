@@ -49,9 +49,7 @@ export function DataProvider({ children }) {
 
     if (migrationState !== 'completed') {
       setSourceMode('migration');
-      // Load local data just for display purposes during conflict resolution
-      const loadedData = getGymLogData() || { days: [], measurements: [] };
-      setData(loadedData);
+      setData(null);
       return;
     }
 
