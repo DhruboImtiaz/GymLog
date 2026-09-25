@@ -398,5 +398,15 @@ export const SupabaseService = {
     // No composite constraint on measurement_entries, rely on id
     const { error } = await supabase.from('measurement_entries').upsert(payload, { onConflict: 'id' });
     if (error) throw new RepositoryError(`Batch upsert measurement entries failed: ${error.message}`);
+  },
+
+  // ==========================================
+  // CLOUD RESTORE
+  // ==========================================
+  replaceGymLogData: async (payload) => {
+    // We getUserId just to verify authentication context before invoking RPC
+    await getUserId();
+    const { error } = await supabase.rpc('replace_gymlog_data', { payload });
+    if (error) throw new RepositoryError(`Cloud replacement failed: ${error.message}`);
   }
 };

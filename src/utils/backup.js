@@ -1,7 +1,7 @@
 import { CURRENT_SCHEMA_VERSION } from './migrations';
 import { uid, downloadJSON } from './helpers';
 
-export function generateBackup() {
+export function generateBackup(currentData = null, sourceMode = 'guest') {
   // Collect GymLog data dynamically
   const data = {};
   for (let i = 0; i < localStorage.length; i++) {
@@ -10,6 +10,10 @@ export function generateBackup() {
     if (key && key.startsWith('gymlog_') && key !== 'gymlog_restore_success') {
       data[key] = localStorage.getItem(key);
     }
+  }
+
+  if (sourceMode === 'cloud' && currentData) {
+    data['gymlog_data'] = JSON.stringify(currentData);
   }
 
   const browser = navigator.userAgent;

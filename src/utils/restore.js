@@ -1,4 +1,4 @@
-import { CURRENT_SCHEMA_VERSION, runMigrations } from './migrations';
+import { CURRENT_SCHEMA_VERSION, runMigrations } from './migrations.js';
 
 export function validateBackupFile(file, text) {
   if (file.size > 100 * 1024 * 1024) {
@@ -18,7 +18,7 @@ export function validateBackupFile(file, text) {
   if (!backup.metadata || backup.metadata.app !== 'GymLog') {
     throw new Error('This backup was not created by GymLog.');
   }
-  
+
   if (backup.metadata.schemaVersion === undefined) {
     throw new Error('Invalid backup file. Missing schema version.');
   }
@@ -120,11 +120,99 @@ export function executeRestore(backup) {
     for (const [key, value] of Object.entries(rollback)) {
       localStorage.setItem(key, value);
     }
-    
+
     if (e.message === 'Backup verification failed.') {
       throw new Error('Backup verification failed. Previous data has been restored.');
     } else {
       throw new Error('Failed to restore backup. Previous data has been restored.');
     }
   }
+}
+
+export function deepValidateBackup(data) {
+
+  if (!data || typeof data !== 'object') throw new Error('Data payload must be an object.'); if (!Array.isArray(data.days)) throw new Error('Missing or invalid days array.');
+  if (!Array.isArray(data.measurements)) throw new Error('Missing or invalid measurements array.');
+
+  const seenIds = new Set();
+
+  function checkId(id) {
+    if (typeof id !== 'string' || id.trim() === '') throw new Error('Invalid ID encountered.');
+    if (seenIds.has(id)) throw new Error(`Duplicate ID encountered: ${id}`);
+    seenIds.add(id);
+  }
+
+  function checkDate(d) {
+    if (typeof d !== 'string' || isNaN(Date.parse(d))) throw new Error(`Invalid date string: ${d}`);
+  }
+
+  function checkString(s) {
+    if (typeof s !== 'string' || s.trim() === '') throw new Error('Missing or empty required string.');
+  }
+
+  function checkNumber(n, allowZero = false, allowNegative = false) {
+    if (typeof n !== 'number' || isNaN(n)) throw new Error(`Invalid number: ${n}`);
+    if (!allowNegative && n < 0) throw new Error(`Negative number not allowed: ${n}`);
+    if (!allowZero && n === 0) throw new Error(`Zero not allowed for this field: ${n}`);
+  }
+
+  // Days
+  data.days.forEach(day => {
+    checkId(day.id);
+    checkString(day.name);
+    if (day.createdAt !== undefined) checkDate(day.createdAt);
+    if (!Array.isArray(day.exercises)) throw new Error(`Missing exercises for day ${day.id}`);
+
+    // Exercises
+    day.exercises.forEach(ex => {
+      checkId(ex.id);
+      checkString(ex.name);
+
+      // Active Sets
+      if (ex.sets) {
+        if (!Array.isArray(ex.sets)) throw new Error(`Invalid sets for exercise ${ex.id}`);
+        ex.sets.forEach(set => {
+          checkId(set.id);
+          checkNumber(set.num, false, false);
+          checkNumber(set.reps, false, false);
+          checkNumber(set.weight, true, false); // weight can be zero
+        });
+      }
+
+      // History
+      if (ex.history) {
+        if (!Array.isArray(ex.history)) throw new Error(`Invalid history for exercise ${ex.id}`);
+        ex.history.forEach(hist => {
+          checkId(hist.id);
+          checkDate(hist.date);
+
+          if (hist.sets) {
+            if (!Array.isArray(hist.sets)) throw new Error(`Invalid history sets for history ${hist.id}`);
+            hist.sets.forEach(hSet => {
+              checkNumber(hSet.num, false, false);
+              checkNumber(hSet.reps, false, false);
+              checkNumber(hSet.weight, true, false);
+            });
+          }
+        });
+      }
+    });
+  });
+
+  // Measurements
+  data.measurements.forEach(meas => {
+    checkId(meas.id);
+    checkString(meas.name);
+    if (meas.createdAt !== undefined) checkDate(meas.createdAt);
+
+    if (meas.entries) {
+      if (!Array.isArray(meas.entries)) throw new Error(`Invalid entries for measurement ${meas.id}`);
+      meas.entries.forEach(entry => {
+        checkId(entry.id);
+        checkDate(entry.date);
+        checkNumber(entry.value, true, true); // Values can be zero or negative
+        checkString(entry.unit);
+      });
+    }
+  });
 }

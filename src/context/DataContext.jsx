@@ -4,6 +4,8 @@ import { uid, today, getDateOffsetIso } from '../utils/helpers';
 import { useAuth } from './AuthContext';
 import { useMigration } from './MigrationContext';
 import { SupabaseService } from '../lib/repository';
+import { MigrationService } from '../lib/migrationService';
+import { deepValidateBackup } from '../utils/restore';
 
 const DataContext = createContext();
 
@@ -111,6 +113,41 @@ export function DataProvider({ children }) {
 
       console.error('Cloud mutation failed:', err);
       setCloudError(err.message || 'Failed to sync with cloud.');
+    }
+  }, [sourceMode]);
+
+  const performCloudRestore = useCallback(async (migratedDataModel) => {
+    const requestId = currentUserIdRef.current;
+    if (!requestId || sourceMode !== 'cloud') return;
+
+    setCloudError(null);
+
+    try {
+      // 0. Pre-replacement validation
+      const domainModel = migratedDataModel['gymlog_data'] || { days: [], measurements: [] };
+      deepValidateBackup(domainModel);
+
+      // 1. the destructive operation
+      await SupabaseService.replaceGymLogData(migratedDataModel['gymlog_data']);
+
+      if (currentUserIdRef.current !== requestId) return;
+
+      // 2. Authoritative refetch
+      const newCloudData = await SupabaseService.fetchGymLogData();
+
+      if (currentUserIdRef.current !== requestId) return;
+
+      // 3. Post-restore verification (authoritative)
+      const verificationModel = { days: [], measurements: [], ...domainModel };
+      await MigrationService.verifyMigration(verificationModel, newCloudData);
+
+      if (currentUserIdRef.current === requestId) {
+        setData(newCloudData);
+      }
+    } catch (err) {
+      if (currentUserIdRef.current !== requestId) return;
+      console.error('Cloud restore failed:', err);
+      setCloudError(err.message || 'Failed to restore cloud data.');
     }
   }, [sourceMode]);
 
@@ -575,7 +612,8 @@ export function DataProvider({ children }) {
     deleteMeasurementEntry,
     reorderDays,
     reorderExercises,
-    reorderMeasurements
+    reorderMeasurements,
+    performCloudRestore
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

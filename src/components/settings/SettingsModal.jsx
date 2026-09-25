@@ -12,14 +12,14 @@ import { useNavigate } from 'react-router-dom';
 export default function SettingsModal() {
   const { isSettingsOpen, setIsSettingsOpen } = useSettings();
   const { fontSize, setFontSize } = useFont();
-  const { sourceMode } = useGymLogData();
+  const { sourceMode, data } = useGymLogData();
   const [pendingBackup, setPendingBackup] = useState(null);
 
   if (!isSettingsOpen) return null;
 
   const handleBackup = () => {
     try {
-      generateBackup();
+      generateBackup(data, sourceMode);
       alert('Backup created successfully.');
     } catch (e) {
       alert('Failed to generate backup.');
@@ -27,14 +27,14 @@ export default function SettingsModal() {
   };
 
   const handleRestore = async () => {
-    if (sourceMode !== 'guest') return;
+    if (sourceMode !== 'guest' && sourceMode !== 'cloud') return;
     try {
       const file = await triggerFilePicker('.json');
       if (!file) return; // Cancelled
 
       const text = await readFileAsText(file);
       const { backup } = validateBackupFile(file, text);
-      
+
       setPendingBackup(backup);
     } catch (error) {
       alert(error.message);
@@ -51,11 +51,11 @@ export default function SettingsModal() {
             <span className="modal-title">Settings</span>
             <button className="modal-close" onClick={() => setIsSettingsOpen(false)}>×</button>
           </div>
-          
+
           <div className="section-header" style={{ marginTop: '0' }}>
             <span className="section-title">Appearance</span>
           </div>
-          
+
           <div className="card" style={{ marginBottom: '1.25rem', padding: '1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <div>
@@ -93,7 +93,7 @@ export default function SettingsModal() {
               <div style={{ fontSize: '0.875rem', color: 'var(--text2)', marginBottom: '0.85rem' }}>Create a complete backup of all GymLog data.</div>
               <button className="btn btn-primary btn-full" onClick={handleBackup}>Backup</button>
             </div>
-            {sourceMode === 'guest' ? (
+            {(sourceMode === 'guest' || sourceMode === 'cloud') ? (
               <div className="card" style={{ marginBottom: '0', padding: '1rem' }}>
                 <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.4rem', color: 'var(--text)' }}>Restore Backup</div>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text2)', marginBottom: '0.85rem' }}>Restore a previously created GymLog backup.</div>
@@ -107,7 +107,7 @@ export default function SettingsModal() {
               </div>
             )}
           </div>
-          
+
           <div className="section-header">
             <span className="section-title">Account (Cloud Sync)</span>
           </div>
@@ -118,7 +118,11 @@ export default function SettingsModal() {
       </div>
 
       {pendingBackup && (
-        <BackupPreviewModal backup={pendingBackup} onClose={() => setPendingBackup(null)} />
+        <BackupPreviewModal
+          backup={pendingBackup}
+          sourceMode={sourceMode}
+          onClose={() => setPendingBackup(null)}
+        />
       )}
     </>
   );
