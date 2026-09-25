@@ -143,15 +143,18 @@ export function deepValidateBackup(data) {
   }
 
   function checkDate(d) {
-    if (typeof d !== 'string' || isNaN(Date.parse(d))) throw new Error(`Invalid date string: ${d}`);
+    if (typeof d !== 'string' || !/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(d) || isNaN(Date.parse(d))) {
+      throw new Error(`Invalid date string: ${d}`);
+    }
   }
 
   function checkString(s) {
     if (typeof s !== 'string' || s.trim() === '') throw new Error('Missing or empty required string.');
   }
 
-  function checkNumber(n, allowZero = false, allowNegative = false) {
-    if (typeof n !== 'number' || isNaN(n)) throw new Error(`Invalid number: ${n}`);
+  function checkNumber(n, allowZero = false, allowNegative = false, isInteger = false) {
+    if (typeof n !== 'number' || !isFinite(n) || isNaN(n)) throw new Error(`Invalid number: ${n}`);
+    if (isInteger && !Number.isInteger(n)) throw new Error(`Number must be an integer: ${n}`);
     if (!allowNegative && n < 0) throw new Error(`Negative number not allowed: ${n}`);
     if (!allowZero && n === 0) throw new Error(`Zero not allowed for this field: ${n}`);
   }
@@ -173,9 +176,9 @@ export function deepValidateBackup(data) {
         if (!Array.isArray(ex.sets)) throw new Error(`Invalid sets for exercise ${ex.id}`);
         ex.sets.forEach(set => {
           checkId(set.id);
-          checkNumber(set.num, false, false);
-          checkNumber(set.reps, false, false);
-          checkNumber(set.weight, true, false); // weight can be zero
+          checkNumber(set.num, false, false, true);
+          checkNumber(set.reps, false, false, true);
+          checkNumber(set.weight, true, false, false); // weight can be zero
         });
       }
 
@@ -189,9 +192,9 @@ export function deepValidateBackup(data) {
           if (hist.sets) {
             if (!Array.isArray(hist.sets)) throw new Error(`Invalid history sets for history ${hist.id}`);
             hist.sets.forEach(hSet => {
-              checkNumber(hSet.num, false, false);
-              checkNumber(hSet.reps, false, false);
-              checkNumber(hSet.weight, true, false);
+              checkNumber(hSet.num, false, false, true);
+              checkNumber(hSet.reps, false, false, true);
+              checkNumber(hSet.weight, true, false, false);
             });
           }
         });

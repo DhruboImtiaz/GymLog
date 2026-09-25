@@ -127,6 +127,9 @@ export function DataProvider({ children }) {
       const domainModel = migratedDataModel['gymlog_data'] || { days: [], measurements: [] };
       deepValidateBackup(domainModel);
 
+      // Guard immediately before the destructive operation
+      if (currentUserIdRef.current !== requestId || sourceMode !== 'cloud') return;
+
       // 1. the destructive operation
       await SupabaseService.replaceGymLogData(migratedDataModel['gymlog_data']);
 
