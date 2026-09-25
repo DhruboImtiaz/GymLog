@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function MigrationModal({ conflictType, migrationState, onKeepCloud, onReplaceCloud, onUpload, onCancel }) {
+export function MigrationModal({ conflictType, migrationState, actionError, onKeepCloud, onReplaceCloud, onUpload, onCancel }) {
   const isConflict = conflictType === 'Conflict' || conflictType === 'CloudExtraData';
 
   return (
@@ -8,11 +8,18 @@ export function MigrationModal({ conflictType, migrationState, onKeepCloud, onRe
       <div style={styles.modal} className="content">
         <h2 style={{ marginTop: 0 }}>Account Sync Required</h2>
         
-        {migrationState === 'failed' && (
+        {migrationState === 'failed' && !actionError && (
           <div style={{ background: '#ffcccc', color: '#cc0000', padding: '10px', borderRadius: '4px', marginBottom: '15px' }}>
             <strong>Previous Migration Failed.</strong> Please try again or resolve the conflict.
           </div>
         )}
+
+        {actionError && (
+          <div style={{ background: 'var(--danger, #ff4444)', color: '#fff', padding: '10px', borderRadius: '4px', marginBottom: '15px', fontWeight: 'bold' }}>
+            {actionError}
+          </div>
+        )}
+
 
         {conflictType === 'LocalOnly' ? (
           <>

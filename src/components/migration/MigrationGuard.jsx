@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MigrationService } from '../../lib/migrationService';
 import { MigrationModal } from './MigrationModal';
 import { useMigration } from '../../context/MigrationContext';
@@ -16,28 +16,33 @@ export function MigrationGuard({ children }) {
     setDismissedThisSession
   } = useMigration();
 
+  const [actionError, setActionError] = useState(null);
+
   const handleKeepCloud = async () => {
+    setActionError(null);
     await MigrationService.setMigrationState('completed');
     setMigrationState('completed');
   };
 
   const handleReplaceCloud = async () => {
+    setActionError(null);
     const result = await MigrationService.replaceCloudData(localDataRef);
     if (result.success) {
       setMigrationState('completed');
     } else {
       setMigrationState('failed');
-      alert(`Replacement failed: ${result.message}`);
+      setActionError(`Replacement failed: ${result.message}`);
     }
   };
   
   const handleUpload = async () => {
+    setActionError(null);
     const result = await MigrationService.migrateLocalData(localDataRef);
     if (result.success) {
       setMigrationState('completed');
     } else {
       setMigrationState('failed');
-      alert(`Upload failed: ${result.message}`);
+      setActionError(`Upload failed: ${result.message}`);
     }
   };
 
@@ -65,6 +70,7 @@ export function MigrationGuard({ children }) {
         <MigrationModal 
           conflictType={conflictType} 
           migrationState={migrationState}
+          actionError={actionError}
           onKeepCloud={handleKeepCloud}
           onReplaceCloud={handleReplaceCloud}
           onUpload={handleUpload}
