@@ -127,6 +127,9 @@ export function DataProvider({ children }) {
       const domainModel = migratedDataModel['gymlog_data'] || { days: [], measurements: [] };
       deepValidateBackup(domainModel);
 
+      // Deterministic seam to allow pre-RPC event loop interleaving for testing
+      await Promise.resolve();
+
       // Guard immediately before the destructive operation
       if (currentUserIdRef.current !== requestId || sourceMode !== 'cloud') return;
 

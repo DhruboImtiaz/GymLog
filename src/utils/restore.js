@@ -143,7 +143,15 @@ export function deepValidateBackup(data) {
   }
 
   function checkDate(d) {
-    if (typeof d !== 'string' || !/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(d) || isNaN(Date.parse(d))) {
+    if (typeof d !== 'string' || !/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(d)) {
+      throw new Error(`Invalid date string: ${d}`);
+    }
+    const match = d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    const day = parseInt(match[3], 10);
+    const dateObj = new Date(year, month, day);
+    if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month || dateObj.getDate() !== day) {
       throw new Error(`Invalid date string: ${d}`);
     }
   }
