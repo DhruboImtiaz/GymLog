@@ -15,10 +15,16 @@ export function MigrationProvider({ children }) {
   // Expose this so MigrationGuard can hide itself if dismissed
   const [dismissedThisSession, setDismissedThisSession] = useState(false);
 
+  const currentSessionUserIdRef = React.useRef(null);
+
   const evaluateMigration = useCallback(async (currentSession) => {
+    currentSessionUserIdRef.current = currentSession?.user?.id || null;
+    const requestId = currentSessionUserIdRef.current;
+
     if (!currentSession) {
-      setMigrationState('pending');
+      setMigrationState('none');
       setConflictType(null);
+      setLocalDataRef(null);
       setLoading(false);
       return;
     }
@@ -26,26 +32,37 @@ export function MigrationProvider({ children }) {
     setLoading(true);
     try {
       const state = await MigrationService.getMigrationState();
+      if (currentSessionUserIdRef.current !== requestId) return;
+
       setMigrationState(state);
 
       if (state === 'pending' || state === 'failed') {
         const localData = getGymLogData() || { days: [], measurements: [] };
+        if (currentSessionUserIdRef.current !== requestId) return;
         setLocalDataRef(localData);
+
         const cloudData = await SupabaseService.fetchGymLogData();
-        
+        if (currentSessionUserIdRef.current !== requestId) return;
+
         const conflict = await MigrationService.determineConflict(localData, cloudData);
+        if (currentSessionUserIdRef.current !== requestId) return;
+
         setConflictType(conflict);
 
         if (conflict === 'NoData' || conflict === 'CloudOnly' || conflict === 'Matching') {
           // Auto-resolve safe scenarios
           await MigrationService.setMigrationState('completed');
+          if (currentSessionUserIdRef.current !== requestId) return;
           setMigrationState('completed');
         }
       }
     } catch (e) {
+      if (currentSessionUserIdRef.current !== requestId) return;
       console.error('Migration evaluation failed', e);
     } finally {
-      setLoading(false);
+      if (currentSessionUserIdRef.current === requestId) {
+        setLoading(false);
+      }
     }
   }, []);
 

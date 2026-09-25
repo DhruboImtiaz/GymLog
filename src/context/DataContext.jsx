@@ -29,6 +29,8 @@ export function DataProvider({ children }) {
     // Immediately clear data on transition
     setData(null);
     setSourceMode('loading');
+    setCloudError(null);
+    setCloudStatus('idle');
 
     if (migrationLoading) return;
 
