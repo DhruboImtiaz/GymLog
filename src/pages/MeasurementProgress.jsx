@@ -27,7 +27,7 @@ export default function MeasurementProgress() {
   const years = [...new Set(entries.map(e => new Date(e.date).getFullYear()))].sort((a, b) => a - b);
   const now = new Date();
   if (!years.length) years.push(now.getFullYear());
-  
+
   let initialYear = now.getFullYear();
   if (!years.includes(initialYear)) initialYear = years[years.length - 1];
 
@@ -46,27 +46,17 @@ export default function MeasurementProgress() {
 
   return (
     <div className="page active" style={{ display: 'block' }}>
-      <nav className="navbar">
-        <span className="nav-brand" onClick={() => navigate('/')}>GYMLOG</span>
-        <div className="nav-right">
-          <button className="theme-btn" onClick={toggleTheme}>
-            {theme === 'dark' ? 'Light' : 'Dark'}
-          </button>
-          <button className="settings-btn" aria-label="Settings" title="Settings" onClick={() => setIsSettingsOpen(true)}>
-            <SettingsIcon />
-          </button>
-        </div>
-      </nav>
 
-      <div className="content">
+
+      <div className="content chart-wide">
         <div className="page-header" style={{ alignItems: 'flex-start', flexDirection: 'column' }}>
           <div className="page-header-left" style={{ width: '100%', marginBottom: '10px' }}>
             <button className="back-btn" onClick={() => navigate(-1)}>‹ Back</button>
             <div className="page-title">{measurement.name}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0, marginTop: '0.25rem' }}>
-            <select 
-              value={progMonth} 
+            <select
+              value={progMonth}
               onChange={e => setProgMonth(parseInt(e.target.value))}
               style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r3)', color: 'var(--text)', padding: '0 0.5rem', height: '34px', fontSize: '0.8rem', fontFamily: 'var(--fb)', outline: 'none', cursor: 'pointer' }}
             >
@@ -74,8 +64,8 @@ export default function MeasurementProgress() {
                 <option key={i} value={i}>{m}</option>
               ))}
             </select>
-            <select 
-              value={progYear} 
+            <select
+              value={progYear}
               onChange={e => setProgYear(parseInt(e.target.value))}
               style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 'var(--r3)', color: 'var(--text)', padding: '0 0.5rem', height: '34px', fontSize: '0.8rem', fontFamily: 'var(--fb)', outline: 'none', cursor: 'pointer' }}
             >
@@ -100,11 +90,11 @@ export default function MeasurementProgress() {
                   <LineChart labels={labels} data={chartData} color="#4ade80" />
                 </div>
               </div>
-              
+
               <div className="section-header">
                 <span className="section-title">History</span>
               </div>
-              
+
               {[...filtered].reverse().map(e => (
                 <div className="hist-card" key={e.id}>
                   <div className="hist-row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>

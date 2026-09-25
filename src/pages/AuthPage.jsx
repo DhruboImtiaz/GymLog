@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 export default function AuthPage() {
   const navigate = useNavigate();
   const { signIn, signUp, user } = useAuth();
-  
+
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -78,7 +78,7 @@ export default function AuthPage() {
                 required
               />
             </div>
-            
+
             <div className="form-group">
               <label className="form-label">Password</label>
               <input
@@ -101,7 +101,7 @@ export default function AuthPage() {
               {loading ? 'Loading...' : (isLogin ? 'Log In' : 'Sign Up')}
             </button>
           </form>
-          
+
           <div style={{ marginTop: '1.25rem', textAlign: 'center', fontSize: '0.85rem' }}>
             <button
               type="button"

@@ -24,7 +24,7 @@ export default function WorkoutDay() {
 
   const [renamingExId, setRenamingExId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
-  
+
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   if (!day) {
@@ -57,17 +57,7 @@ export default function WorkoutDay() {
 
   return (
     <div className="page active" style={{ display: 'block' }}>
-      <nav className="navbar">
-        <span className="nav-brand" onClick={() => navigate('/')}>GYMLOG</span>
-        <div className="nav-right">
-          <button className="theme-btn" onClick={toggleTheme}>
-            {theme === 'dark' ? 'Light' : 'Dark'}
-          </button>
-          <button className="settings-btn" aria-label="Settings" title="Settings" onClick={() => setIsSettingsOpen(true)}>
-            <SettingsIcon />
-          </button>
-        </div>
-      </nav>
+
 
       <div className="content">
         <div className="page-header">

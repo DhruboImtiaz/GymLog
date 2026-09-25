@@ -49,26 +49,16 @@ export default function ExerciseDetail() {
   };
 
   const sets = exercise.sets || [];
-  
+
   // Date title string
   const dateTitle = dateOffset === 0 ? "Today's Sets" : dateOffset === 1 ? "Yesterday's Sets" : "Sets for 2 Days Ago";
   const saveBtnLbl = dateOffset === 0 ? "Today" : dateOffset === 1 ? "Yesterday" : "2 Days Ago";
 
   return (
     <div className="page active" style={{ display: 'block' }}>
-      <nav className="navbar">
-        <span className="nav-brand" onClick={() => navigate('/')}>GYMLOG</span>
-        <div className="nav-right">
-          <button className="theme-btn" onClick={toggleTheme}>
-            {theme === 'dark' ? 'Light' : 'Dark'}
-          </button>
-          <button className="settings-btn" aria-label="Settings" title="Settings" onClick={() => setIsSettingsOpen(true)}>
-            <SettingsIcon />
-          </button>
-        </div>
-      </nav>
 
-      <div className="content">
+
+      <div className="content exercise-wide">
         <div className="page-header">
           <div className="page-header-left">
             <button className="back-btn" onClick={() => navigate(-1)}>‹ {day.name}</button>
@@ -77,48 +67,54 @@ export default function ExerciseDetail() {
           <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/day/${dayId}/exercise/${exerciseId}/progress`)}>Progress</button>
         </div>
 
-        <LastSessionCard history={exercise.history} />
-
-        <div className="section-header">
-          <span className="section-title" id="exSetsTitle">{dateTitle}</span>
-          <span className="section-badge" id="setBadge">{sets.length} set{sets.length !== 1 ? 's' : ''}</span>
-        </div>
-
-        <div id="setsList">
-          {sets.length === 0 ? (
-            <div className="empty" id="noSets">
-              <div className="empty-title">No sets logged</div>
-              <p className="empty-text" style={{ marginBottom: 0 }}>Add a set below to start this exercise.</p>
-            </div>
-          ) : (
-            sets.map(s => (
-              <SetRow 
-                key={s.id} 
-                setItem={s} 
-                onUpdate={handleUpdateSet} 
-                onDelete={handleDeleteSet} 
-              />
-            ))
-          )}
-        </div>
-
-        <AddSetForm 
-          onAdd={handleAddSet} 
-          dateOffset={dateOffset}
-          setDateOffset={setDateOffset}
-        />
-
-        {sets.length > 0 && (
-          <div id="saveSection" style={{ marginTop: '20px' }}>
-            <button 
-              className="btn btn-success btn-full btn-lg" 
-              style={{ marginBottom: '15px' }} 
-              onClick={handleSaveSession}
-            >
-              Save {saveBtnLbl}'s Workout to History
-            </button>
+        <div className="exercise-desktop-split">
+          <div className="exercise-split-right">
+            <LastSessionCard history={exercise.history} />
           </div>
-        )}
+
+          <div className="exercise-split-left">
+            <div className="section-header" style={{ marginTop: 0 }}>
+              <span className="section-title" id="exSetsTitle">{dateTitle}</span>
+              <span className="section-badge" id="setBadge">{sets.length} set{sets.length !== 1 ? 's' : ''}</span>
+            </div>
+
+            <div id="setsList">
+              {sets.length === 0 ? (
+                <div className="empty" id="noSets">
+                  <div className="empty-title">No sets logged</div>
+                  <p className="empty-text" style={{ marginBottom: 0 }}>Add a set below to start this exercise.</p>
+                </div>
+              ) : (
+                sets.map(s => (
+                  <SetRow
+                    key={s.id}
+                    setItem={s}
+                    onUpdate={handleUpdateSet}
+                    onDelete={handleDeleteSet}
+                  />
+                ))
+              )}
+            </div>
+
+            <AddSetForm
+              onAdd={handleAddSet}
+              dateOffset={dateOffset}
+              setDateOffset={setDateOffset}
+            />
+
+            {sets.length > 0 && (
+              <div id="saveSection" style={{ marginTop: '20px' }}>
+                <button
+                  className="btn btn-success btn-full btn-lg"
+                  style={{ marginBottom: '15px' }}
+                  onClick={handleSaveSession}
+                >
+                  Save {saveBtnLbl}'s Workout to History
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

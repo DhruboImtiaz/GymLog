@@ -59,17 +59,7 @@ export default function MeasurementDetail() {
 
   return (
     <div className="page active" style={{ display: 'block' }}>
-      <nav className="navbar">
-        <span className="nav-brand" onClick={() => navigate('/')}>GYMLOG</span>
-        <div className="nav-right">
-          <button className="theme-btn" onClick={toggleTheme}>
-            {theme === 'dark' ? 'Light' : 'Dark'}
-          </button>
-          <button className="settings-btn" aria-label="Settings" title="Settings" onClick={() => setIsSettingsOpen(true)}>
-            <SettingsIcon />
-          </button>
-        </div>
-      </nav>
+
 
       <div className="content">
         <div className="page-header">
@@ -116,17 +106,17 @@ export default function MeasurementDetail() {
 
         <div className="add-card">
           <div className="add-title">Log a Measurement</div>
-          
+
           <DateSelector offset={dateOffset} setOffset={setDateOffset} />
-          
+
           <div className="add-grid">
             <div className="input-group">
               <label className="input-label">Value</label>
-              <input 
-                type="number" 
-                className="num-input" 
-                placeholder="0" 
-                step="0.1" 
+              <input
+                type="number"
+                className="num-input"
+                placeholder="0"
+                step="0.1"
                 inputMode="decimal"
                 value={inValue}
                 onChange={(e) => setInValue(e.target.value)}
@@ -140,8 +130,8 @@ export default function MeasurementDetail() {
 
             <div className="input-group">
               <label className="input-label">Unit</label>
-              <select 
-                className="num-input" 
+              <select
+                className="num-input"
                 style={{ padding: 0 }}
                 value={inUnit}
                 onChange={(e) => setInUnit(e.target.value)}
@@ -154,7 +144,7 @@ export default function MeasurementDetail() {
               </select>
             </div>
           </div>
-          
+
           <button className="btn btn-primary btn-full" onClick={handleAddEntry}>Log Entry</button>
         </div>
 

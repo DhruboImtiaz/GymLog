@@ -61,17 +61,7 @@ export default function Measurements() {
 
   return (
     <div className="page active" style={{ display: 'block' }}>
-      <nav className="navbar">
-        <span className="nav-brand">GYMLOG</span>
-        <div className="nav-right">
-          <button className="theme-btn" onClick={toggleTheme}>
-            {theme === 'dark' ? 'Light' : 'Dark'}
-          </button>
-          <button className="settings-btn" aria-label="Settings" title="Settings" onClick={() => setIsSettingsOpen(true)}>
-            <SettingsIcon />
-          </button>
-        </div>
-      </nav>
+
 
       <div className="content">
         <div className="page-header">
@@ -105,9 +95,9 @@ export default function Measurements() {
                     </div>
                   </div>
                   <div className="card-right-actions">
-                    <button 
-                      className="card-edit-btn" 
-                      onClick={(e) => handleOpenRename(e, m)} 
+                    <button
+                      className="card-edit-btn"
+                      onClick={(e) => handleOpenRename(e, m)}
                       title="Edit Measurement"
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -131,10 +121,10 @@ export default function Measurements() {
         <div className="modal-overlay open">
           <div className="modal-box">
             <div className="modal-title">New Measurement</div>
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder="e.g. Weight, Body Fat %" 
+            <input
+              type="text"
+              className="form-input"
+              placeholder="e.g. Weight, Body Fat %"
               value={addName}
               onChange={e => setAddName(e.target.value)}
               autoFocus
@@ -152,10 +142,10 @@ export default function Measurements() {
         <div className="modal-overlay open">
           <div className="modal-box">
             <div className="modal-title">Rename Measurement</div>
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder="Measurement Name" 
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Measurement Name"
               value={renameName}
               onChange={e => setRenameName(e.target.value)}
               autoFocus

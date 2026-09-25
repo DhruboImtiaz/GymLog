@@ -365,3 +365,129 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
 @media(min-width:600px){
   .content{padding:1.5rem 1.25rem;}
 }
+
+/* DESKTOP LAYOUT OVERRIDES */
+.sidebar-brand { display: none; }
+
+@media (min-width: 768px) {
+  /* App Shell & Sidebar */
+  .app-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    padding-left: 240px; /* Space for sidebar */
+  }
+
+  .navbar {
+    position: fixed;
+    top: 0;
+    left: 240px;
+    right: 0;
+    z-index: 200;
+  }
+
+  /* Hide brand in TopBar, show in Sidebar */
+  .topbar-brand { display: none; }
+  .sidebar-brand {
+    display: block;
+    margin-bottom: 2rem;
+    padding: 0 1rem;
+    font-size: 28px;
+  }
+
+  .bottom-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 240px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding-top: var(--safe-top);
+    padding-bottom: 0;
+    border-top: none;
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+  }
+  [data-theme="light"] .bottom-nav { background: var(--bg); }
+
+  .bottom-nav .sidebar-brand { margin-top: 1.25rem; }
+
+  .bnav-item {
+    flex: 0 0 auto;
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    font-size: 0.95rem;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .bnav-item.active {
+    background: var(--bg3);
+    border-right: 3px solid var(--accent);
+  }
+
+  /* Main Container adjustments */
+  .page {
+    padding-bottom: 2rem; /* Remove mobile bottom nav padding */
+  }
+
+  /* Modals */
+  .modal-overlay {
+    align-items: center; /* Center horizontally & vertically */
+  }
+  .modal-box {
+    border-radius: var(--r);
+    animation: fadeScale 0.2s ease;
+    margin: 1rem;
+    max-height: 85vh;
+  }
+
+  .content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Grid layout for Exercise Detail */
+  .exercise-desktop-split {
+    display: grid;
+    grid-template-columns: 55% 45%;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .content.exercise-wide {
+    max-width: 1200px;
+  }
+
+  /* Charts */
+  .content.chart-wide {
+    max-width: 1000px;
+  }
+}
+
+/* Exercise Detail Split Layout */
+.exercise-desktop-split {
+  display: flex;
+  flex-direction: column;
+}
+.exercise-split-right { order: 1; margin-bottom: 0.25rem; }
+.exercise-split-left { order: 2; }
+
+@media (min-width: 1024px) {
+  .exercise-desktop-split {
+    display: grid;
+    grid-template-columns: 6fr 4fr;
+    gap: 2rem;
+    align-items: start;
+  }
+  .exercise-split-right { order: 2; margin-bottom: 0; }
+  .exercise-split-left { order: 1; }
+}

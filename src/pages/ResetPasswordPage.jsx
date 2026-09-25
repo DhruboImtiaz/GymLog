@@ -6,7 +6,7 @@ export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { resetPassword, updatePassword, user } = useAuth();
-  
+
   const [email, setEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -91,7 +91,7 @@ export default function ResetPasswordPage() {
                   required
                 />
               </div>
-              
+
               <button
                 type="submit"
                 className="btn btn-primary btn-full btn-lg"
@@ -115,7 +115,7 @@ export default function ResetPasswordPage() {
                   minLength={6}
                 />
               </div>
-              
+
               <button
                 type="submit"
                 className="btn btn-primary btn-full btn-lg"

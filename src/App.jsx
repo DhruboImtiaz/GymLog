@@ -1,10 +1,11 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Outlet } from 'react-router-dom';
 import { useGymLogData } from './context/DataContext';
 import Dashboard from './pages/Dashboard';
 import WorkoutDay from './pages/WorkoutDay';
 import ExerciseDetail from './pages/ExerciseDetail';
 import { BottomNav } from './components/navigation/BottomNav';
+import { TopBar } from './components/navigation/TopBar';
 
 import Measurements from './pages/Measurements';
 import MeasurementDetail from './pages/MeasurementDetail';
@@ -18,6 +19,18 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import { SettingsProvider } from './context/SettingsContext';
 import SettingsModal from './components/settings/SettingsModal';
 import { MigrationGuard } from './components/migration/MigrationGuard';
+
+function AppShell() {
+  return (
+    <div className="app-shell">
+      <TopBar />
+      <div className="app-content-wrapper">
+        <Outlet />
+      </div>
+      <BottomNav />
+    </div>
+  );
+}
 
 function App() {
   const { isMalformed, data, cloudStatus, cloudError, clearCloudError } = useGymLogData();
@@ -69,19 +82,20 @@ function App() {
           </div>
         )}
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/day/:dayId" element={<WorkoutDay />} />
-          <Route path="/day/:dayId/exercise/:exerciseId" element={<ExerciseDetail />} />
-          <Route path="/day/:dayId/exercise/:exerciseId/progress" element={<ExerciseProgress />} />
+          <Route element={<AppShell />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/day/:dayId" element={<WorkoutDay />} />
+            <Route path="/day/:dayId/exercise/:exerciseId" element={<ExerciseDetail />} />
+            <Route path="/day/:dayId/exercise/:exerciseId/progress" element={<ExerciseProgress />} />
 
-          <Route path="/measurements" element={<Measurements />} />
-          <Route path="/measurements/:measId" element={<MeasurementDetail />} />
-          <Route path="/measurements/:measId/progress" element={<MeasurementProgress />} />
+            <Route path="/measurements" element={<Measurements />} />
+            <Route path="/measurements/:measId" element={<MeasurementDetail />} />
+            <Route path="/measurements/:measId/progress" element={<MeasurementProgress />} />
+          </Route>
 
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
         </Routes>
-        <BottomNav />
         <SettingsModal />
       </MigrationGuard>
     </SettingsProvider>
