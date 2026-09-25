@@ -61,7 +61,7 @@ export default function MeasurementDetail() {
     <div className="page active" style={{ display: 'block' }}>
 
 
-      <div className="content">
+      <div className="content exercise-wide">
         <div className="page-header">
           <div className="page-header-left">
             <button className="back-btn" onClick={() => navigate('/measurements')}>‹ Back</button>
@@ -70,84 +70,89 @@ export default function MeasurementDetail() {
           <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/measurements/${measId}/progress`)}>Progress</button>
         </div>
 
-        <div className="section-header">
-          <span className="section-title">Entries</span>
-          <span className="section-badge">
-            {entries.length} entr{entries.length !== 1 ? 'ies' : 'y'}
-          </span>
-        </div>
-
-        <div className="sets-list">
-          {sortedEntries.length === 0 ? (
-            <p className="empty-text" style={{ color: 'var(--text2)', fontSize: '0.875rem', textAlign: 'center', padding: '0.75rem 0 1rem', margin: 0 }}>
-              No entries yet — log one below.
-            </p>
-          ) : (
-            sortedEntries.map(e => {
-              const dateFmt = fmt(e.date);
-              const dateSplit = dateFmt.split(' ');
-              const displayDate = `${dateSplit[0]} ${dateSplit[1]?.replace(',', '')}`;
-              return (
-                <div className="set-row" key={e.id}>
-                  <div className="set-badge" style={{ width: 'auto', padding: '0 0.5rem', borderRadius: 'var(--r3)', background: 'var(--adim)', color: 'var(--accent)', fontWeight: 700, fontSize: '0.8rem' }}>
-                    {displayDate}
-                  </div>
-                  <div className="set-info">
-                    <span className="set-weight">{e.value} {e.unit}</span>
-                  </div>
-                  <div className="set-act">
-                    <button className="icon-btn del" onClick={() => handleDeleteEntry(e.id)}>Del</button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        <div className="add-card">
-          <div className="add-title">Log a Measurement</div>
-
-          <DateSelector offset={dateOffset} setOffset={setDateOffset} />
-
-          <div className="add-grid">
-            <div className="input-group">
-              <label className="input-label">Value</label>
-              <input
-                type="number"
-                className="num-input"
-                placeholder="0"
-                step="0.1"
-                inputMode="decimal"
-                value={inValue}
-                onChange={(e) => setInValue(e.target.value)}
-              />
-              <div className="quick-row">
-                <button className="qbtn" onClick={() => handleAdj(0.5)}>+0.5</button>
-                <button className="qbtn" onClick={() => handleAdj(1.0)}>+1.0</button>
-                <button className="qbtn" onClick={() => handleAdj(-0.5)}>−0.5</button>
-              </div>
+        <div className="measurement-desktop-split">
+          <div className="meas-split-right">
+            <div className="section-header" style={{ marginTop: 0 }}>
+              <span className="section-title">Entries</span>
+              <span className="section-badge">
+                {entries.length} entr{entries.length !== 1 ? 'ies' : 'y'}
+              </span>
             </div>
 
-            <div className="input-group">
-              <label className="input-label">Unit</label>
-              <select
-                className="num-input"
-                style={{ padding: 0 }}
-                value={inUnit}
-                onChange={(e) => setInUnit(e.target.value)}
-              >
-                <option value="cm">cm</option>
-                <option value="in">inch</option>
-                <option value="kg">kg</option>
-                <option value="lbs">lbs</option>
-                <option value="%">%</option>
-              </select>
+            <div className="sets-list meas-scrollable-list">
+              {sortedEntries.length === 0 ? (
+                <p className="empty-text" style={{ color: 'var(--text2)', fontSize: '0.875rem', textAlign: 'center', padding: '0.75rem 0 1rem', margin: 0 }}>
+                  No entries yet — log one below.
+                </p>
+              ) : (
+                sortedEntries.map(e => {
+                  const dateFmt = fmt(e.date);
+                  const dateSplit = dateFmt.split(' ');
+                  const displayDate = `${dateSplit[0]} ${dateSplit[1]?.replace(',', '')}`;
+                  return (
+                    <div className="set-row" key={e.id}>
+                      <div className="set-badge" style={{ width: 'auto', padding: '0 0.5rem', borderRadius: 'var(--r3)', background: 'var(--adim)', color: 'var(--accent)', fontWeight: 700, fontSize: '0.8rem' }}>
+                        {displayDate}
+                      </div>
+                      <div className="set-info">
+                        <span className="set-weight">{e.value} {e.unit}</span>
+                      </div>
+                      <div className="set-act">
+                        <button className="icon-btn del" onClick={() => handleDeleteEntry(e.id)}>Del</button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
-          <button className="btn btn-primary btn-full" onClick={handleAddEntry}>Log Entry</button>
-        </div>
+          <div className="meas-split-left">
+            <form className="add-card" onSubmit={(e) => { e.preventDefault(); handleAddEntry(); }}>
+              <div className="add-title">Log a Measurement</div>
 
+              <DateSelector offset={dateOffset} setOffset={setDateOffset} />
+
+              <div className="add-grid">
+                <div className="input-group">
+                  <label className="input-label">Value</label>
+                  <input
+                    type="number"
+                    className="num-input"
+                    placeholder="0"
+                    step="0.1"
+                    inputMode="decimal"
+                    value={inValue}
+                    onChange={(e) => setInValue(e.target.value)}
+                  />
+                  <div className="quick-row">
+                    <button type="button" className="qbtn" onClick={() => handleAdj(0.5)}>+0.5</button>
+                    <button type="button" className="qbtn" onClick={() => handleAdj(1.0)}>+1.0</button>
+                    <button type="button" className="qbtn" onClick={() => handleAdj(-0.5)}>−0.5</button>
+                  </div>
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Unit</label>
+                  <select
+                    className="num-input"
+                    style={{ padding: 0 }}
+                    value={inUnit}
+                    onChange={(e) => setInUnit(e.target.value)}
+                  >
+                    <option value="cm">cm</option>
+                    <option value="in">inch</option>
+                    <option value="kg">kg</option>
+                    <option value="lbs">lbs</option>
+                    <option value="%">%</option>
+                  </select>
+                </div>
+              </div>
+
+              <button type="submit" className="btn btn-primary btn-full">Log Entry</button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );
