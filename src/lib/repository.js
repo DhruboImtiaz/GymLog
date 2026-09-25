@@ -366,7 +366,7 @@ export const SupabaseService = {
       weight: hs.weight
     }));
     // Legacy historical sets have no IDs, so we rely on the composite unique constraint
-    const { error } = await supabase.from('workout_history_sets').upsert(payload, { onConflict: 'history_id, set_number' });
+    const { error } = await supabase.from('workout_history_sets').upsert(payload, { onConflict: 'history_id, user_id, set_number' });
     if (error) throw new RepositoryError(`Batch upsert history sets failed: ${error.message}`);
   },
 
