@@ -367,68 +367,59 @@ textarea.form-input{height:auto;padding:0.75rem 0.9rem;resize:vertical;}
 }
 
 /* DESKTOP LAYOUT OVERRIDES */
-.sidebar-brand { display: none; }
+
+.desktop-nav-links { display: none; }
 
 @media (min-width: 768px) {
-  /* App Shell & Sidebar */
+  /* App Shell */
   .app-shell {
     display: flex;
     flex-direction: column;
     min-height: 100dvh;
-    padding-left: 240px; /* Space for sidebar */
   }
 
   .navbar {
-    position: fixed;
+    position: sticky;
     top: 0;
-    left: 240px;
+    left: 0;
     right: 0;
     z-index: 200;
   }
 
-  /* Hide brand in TopBar, show in Sidebar */
-  .topbar-brand { display: none; }
-  .sidebar-brand {
-    display: block;
-    margin-bottom: 2rem;
-    padding: 0 1rem;
-    font-size: 28px;
+  .nav-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .desktop-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .dnav-item {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text3);
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--r3);
+    transition: all 0.2s;
+  }
+
+  .dnav-item:hover {
+    color: var(--text2);
+    background: var(--bg3);
+  }
+
+  .dnav-item.active {
+    color: var(--accent);
+    background: var(--adim);
   }
 
   .bottom-nav {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 240px;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding-top: var(--safe-top);
-    padding-bottom: 0;
-    border-top: none;
-    border-right: 1px solid var(--border);
-    background: var(--bg);
-  }
-  [data-theme="light"] .bottom-nav { background: var(--bg); }
-
-  .bottom-nav .sidebar-brand { margin-top: 1.25rem; }
-
-  .bnav-item {
-    flex: 0 0 auto;
-    width: 100%;
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 1rem;
-    padding: 1rem 1.5rem;
-    font-size: 0.95rem;
-    border-radius: 0;
-    background: transparent;
-  }
-
-  .bnav-item.active {
-    background: var(--bg3);
-    border-right: 3px solid var(--accent);
+    display: none;
   }
 
   /* Main Container adjustments */

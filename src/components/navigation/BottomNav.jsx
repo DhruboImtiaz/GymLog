@@ -5,7 +5,6 @@ import { WorkoutIcon, MeasurementIcon } from '../ui/Icons';
 export function BottomNav() {
   return (
     <nav className="bottom-nav" id="bottomNav">
-      <div className="sidebar-brand nav-brand">GYMLOG</div>
       <NavLink 
         to="/" 
         className={({ isActive }) => `bnav-item ${isActive ? 'active' : ''}`}
