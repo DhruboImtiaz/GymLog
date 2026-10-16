@@ -33,7 +33,7 @@ function AppShell() {
 }
 
 function App() {
-  const { isMalformed, data, cloudStatus, cloudError, clearCloudError, sourceMode } = useGymLogData();
+  const { isMalformed, data, cloudStatus, cloudError, clearCloudError, retryCloud, sourceMode } = useGymLogData();
 
   const [restoreSuccess, setRestoreSuccess] = React.useState(false);
 
@@ -57,7 +57,8 @@ function App() {
     return (
       <div className="content empty">
         <h1 className="empty-title">Cloud Error</h1>
-        <p className="empty-text">Failed to connect to the cloud database. Please try again later.</p>
+        <p className="empty-text">{cloudError || 'Failed to connect to the cloud database.'}</p>
+        <button className="btn btn-primary" onClick={retryCloud}>Retry connection</button>
       </div>
     );
   }

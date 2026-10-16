@@ -1,97 +1,126 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { MigrationService } from '../lib/migrationService';
 import { SupabaseService } from '../lib/repository';
 import { getGymLogData } from '../storage/storage';
+import { fingerprint, prepareGymLogData } from '../lib/syncOperations';
+import { useAuth } from './AuthContext';
 
 const MigrationContext = createContext();
 
 export function MigrationProvider({ children }) {
+  const { user, loading: authLoading, identityRef, identityEpoch } = useAuth();
   const [migrationState, setMigrationState] = useState('pending');
   const [conflictType, setConflictType] = useState(null);
   const [localDataRef, setLocalDataRef] = useState(null);
+  const [cloudVersion, setCloudVersion] = useState(null);
+  const [migrationUserId, setMigrationUserId] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // Expose this so MigrationGuard can hide itself if dismissed
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
   const [dismissedThisSession, setDismissedThisSession] = useState(false);
+  const evaluationRef = useRef(0);
+  const actionRef = useRef(null);
 
-  const currentSessionUserIdRef = React.useRef(null);
-
-  const evaluateMigration = useCallback(async (currentSession) => {
-    currentSessionUserIdRef.current = currentSession?.user?.id || null;
-    const requestId = currentSessionUserIdRef.current;
-
-    if (!currentSession) {
+  const evaluateMigration = useCallback(async () => {
+    const { userId, epoch } = identityRef.current;
+    const sequence = ++evaluationRef.current;
+    const isCurrent = () => identityRef.current.userId === userId && identityRef.current.epoch === epoch && evaluationRef.current === sequence;
+    setLoading(true);
+    setError(null);
+    setConflictType(null);
+    setMigrationUserId(userId);
+    if (!userId) {
       setMigrationState('none');
-      setConflictType(null);
       setLocalDataRef(null);
       setLoading(false);
       return;
     }
-
-    setLoading(true);
+    setMigrationState('pending');
     try {
-      const state = await MigrationService.getMigrationState();
-      if (currentSessionUserIdRef.current !== requestId) return;
-
-      setMigrationState(state);
-
-      if (state === 'pending' || state === 'failed') {
-        const localData = getGymLogData() || { days: [], measurements: [] };
-        if (currentSessionUserIdRef.current !== requestId) return;
-        setLocalDataRef(localData);
-
-        const cloudData = await SupabaseService.fetchGymLogData();
-        if (currentSessionUserIdRef.current !== requestId) return;
-
-        const conflict = await MigrationService.determineConflict(localData, cloudData);
-        if (currentSessionUserIdRef.current !== requestId) return;
-
-        setConflictType(conflict);
-
-        if (conflict === 'NoData' || conflict === 'CloudOnly' || conflict === 'Matching') {
-          // Auto-resolve safe scenarios
-          await MigrationService.setMigrationState('completed');
-          if (currentSessionUserIdRef.current !== requestId) return;
-          setMigrationState('completed');
-        }
+      const pending = MigrationService.getPendingMigration(userId);
+      const local = getGymLogData();
+      if (pending) {
+        // Recovery uses its validated journal even if guest data was later changed/corrupted.
+        setLocalDataRef(local);
+        setConflictType('Recovery');
+        return;
+      }
+      if (!local) throw new Error('Guest data is malformed. It has been preserved; export it before repairing it.');
+      const localHash = await fingerprint(prepareGymLogData(local));
+      if (!isCurrent()) return;
+      setLocalDataRef(local);
+      if (MigrationService.getMigrationState(userId, localHash) === 'completed') {
+        setMigrationState('completed');
+        return;
+      }
+      const cloud = await SupabaseService.fetchGymLogData(userId);
+      if (!isCurrent()) return;
+      setCloudVersion(cloud._version);
+      const conflict = await MigrationService.determineConflict(local, cloud);
+      if (!isCurrent()) return;
+      setConflictType(conflict);
+      if (['NoData', 'CloudOnly', 'Matching'].includes(conflict)) {
+        await MigrationService.acknowledgeGuest(userId, local, isCurrent);
+        if (isCurrent()) setMigrationState('completed');
       }
     } catch (e) {
-      if (currentSessionUserIdRef.current !== requestId) return;
-      console.error('Migration evaluation failed', e);
+      if (isCurrent()) { setMigrationState('failed'); setError(e.message); }
     } finally {
-      if (currentSessionUserIdRef.current === requestId) {
-        setLoading(false);
-      }
+      if (isCurrent()) setLoading(false);
     }
-  }, []);
+  }, [identityRef]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      evaluateMigration(session);
-    });
+    if (authLoading) return;
+    actionRef.current = null;
+    setBusy(false);
+    setDismissedThisSession(false);
+    evaluateMigration();
+    return () => { evaluationRef.current++; };
+  }, [user?.id, identityEpoch, authLoading, evaluateMigration]);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setDismissedThisSession(false);
-      evaluateMigration(session);
-    });
+  useEffect(() => {
+    const onStorage = event => {
+      const userId = identityRef.current.userId;
+      const affectsMigration = !event.key || event.key === 'gymlog_data' || event.key === `gymlog_migration_status_${userId}` || event.key === `gymlog_pending_migration_${userId}`;
+      if (affectsMigration && !actionRef.current) evaluateMigration();
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [evaluateMigration, identityRef]);
 
-    return () => subscription?.unsubscribe();
-  }, [evaluateMigration]);
+  const resolveMigration = useCallback(async mode => {
+    if (actionRef.current) return;
+    const { userId, epoch } = identityRef.current;
+    if (!userId || migrationUserId !== userId) return;
+    const action = { userId, epoch };
+    actionRef.current = action;
+    ++evaluationRef.current;
+    const isCurrent = () => identityRef.current.userId === userId && identityRef.current.epoch === epoch && actionRef.current === action;
+    setBusy(true);
+    setError(null);
+    try {
+      if (mode === 'keep') {
+        if (MigrationService.getPendingMigration(userId)) throw new Error('Resume the previous migration before choosing another action.');
+        await MigrationService.acknowledgeGuest(userId, localDataRef, isCurrent);
+      } else {
+        await MigrationService.runMigration({ localData: localDataRef, userId, expectedVersion: cloudVersion, replace: mode === 'replace', isCurrent });
+      }
+      if (isCurrent()) await evaluateMigration();
+    } catch (e) {
+      if (isCurrent()) {
+        // Refresh a stale preview, while preserving an uncertain operation for replay.
+        await evaluateMigration();
+        if (isCurrent()) { setMigrationState('failed'); setError(e.message); }
+      }
+    } finally {
+      if (isCurrent()) { actionRef.current = null; setBusy(false); }
+    }
+  }, [identityRef, migrationUserId, localDataRef, cloudVersion, evaluateMigration]);
 
-  const value = {
-    migrationState,
-    setMigrationState,
-    conflictType,
-    localDataRef,
-    loading,
-    dismissedThisSession,
-    setDismissedThisSession
-  };
-
+  const value = { migrationState, migrationUserId, conflictType, localDataRef, loading, busy, error,
+    dismissedThisSession, setDismissedThisSession, resolveMigration, retryEvaluation: evaluateMigration };
   return <MigrationContext.Provider value={value}>{children}</MigrationContext.Provider>;
 }
 
-export function useMigration() {
-  return useContext(MigrationContext);
-}
+export function useMigration() { return useContext(MigrationContext); }

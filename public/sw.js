@@ -1,72 +1,38 @@
-const CACHE_NAME = 'gymlog-cache-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
-];
+const CACHE_NAME = 'gymlog-static-v2';
+const ASSETS_TO_CACHE = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
-self.addEventListener('install', (event) => {
-  // Do not force skipWaiting to prevent disrupting active workouts
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE)));
+  // Remove private API responses left by the old worker as soon as this update activates.
+  self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName.startsWith('gymlog-cache-') && cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(names.filter(name => name.startsWith('gymlog-') && name !== CACHE_NAME).map(name => caches.delete(name)));
+    await self.clients.claim();
+  })());
 });
 
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  
-  // Network-first for index.html (navigate requests) so user always gets latest app shell if online.
-  // Fallback to cached index.html if offline.
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          return caches.open(CACHE_NAME).then((cache) => {
-            cache.put('/index.html', networkResponse.clone());
-            return networkResponse;
-          });
-        })
-        .catch(() => {
-          return caches.match('/index.html');
-        })
-    );
-    return;
-  }
-
-  // Stale-while-revalidate for static assets (JS, CSS, images, Google Fonts)
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request)
-        .then((networkResponse) => {
-          // Allow opaque responses (status 0) for cross-origin fonts, or status 200
-          if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, networkResponse.clone());
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => null);
-      
-      return cachedResponse || fetchPromise;
-    })
-  );
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  const url = new URL(request.url);
+  // Auth, REST, RPC and every other remote request always go directly to the network.
+  if (request.method !== 'GET' || url.origin !== self.location.origin || request.headers.has('authorization')) return;
+  const isNavigation = request.mode === 'navigate';
+  const isStatic = ASSETS_TO_CACHE.includes(url.pathname) || /^\/assets\/.+\.(js|css|woff2?|png|svg)$/.test(url.pathname);
+  if (!isNavigation && !isStatic) return;
+  event.respondWith((async () => {
+    try {
+      const response = await fetch(request);
+      if (response.ok && response.type !== 'opaque') {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(isNavigation ? '/index.html' : request, response.clone());
+      }
+      return response;
+    } catch {
+      return await caches.match(isNavigation ? '/index.html' : request) || Response.error();
+    }
+  })());
 });

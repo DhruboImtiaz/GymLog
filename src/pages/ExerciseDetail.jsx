@@ -11,7 +11,7 @@ import AddSetForm from '../components/exercise/AddSetForm';
 export default function ExerciseDetail() {
   const { dayId, exerciseId } = useParams();
   const navigate = useNavigate();
-  const { data, addSet, updateSet, deleteSet, saveSession } = useGymLogData();
+  const { data, addSet, updateSet, deleteSet, saveSession, cloudBusy } = useGymLogData();
   const { theme, toggleTheme } = useTheme();
   const { setIsSettingsOpen } = useSettings();
 
@@ -27,7 +27,7 @@ export default function ExerciseDetail() {
   }
 
   const handleAddSet = (reps, weight) => {
-    addSet(dayId, exerciseId, reps, weight);
+    return addSet(dayId, exerciseId, reps, weight);
   };
 
   const handleUpdateSet = (setId, reps, weight) => {
@@ -40,8 +40,9 @@ export default function ExerciseDetail() {
     deleteSet(dayId, exerciseId, setId);
   };
 
-  const handleSaveSession = () => {
-    saveSession(dayId, exerciseId, dateOffset);
+  const handleSaveSession = async () => {
+    const saved = await saveSession(dayId, exerciseId, dateOffset);
+    if (!saved) return;
     setDateOffset(0);
     const dateLbl = dateOffset === 0 ? 'Today' : dateOffset === 1 ? 'Yesterday' : '2 days ago';
     // Using simple alert here to replace the original imperative toast
@@ -119,6 +120,7 @@ export default function ExerciseDetail() {
 
             <AddSetForm
               onAdd={handleAddSet}
+              disabled={cloudBusy}
               dateOffset={dateOffset}
               setDateOffset={setDateOffset}
             />
@@ -129,6 +131,7 @@ export default function ExerciseDetail() {
                   className="btn btn-success btn-full btn-lg"
                   style={{ marginBottom: '15px' }}
                   onClick={handleSaveSession}
+                  disabled={cloudBusy}
                 >
                   Save {saveBtnLbl}'s Workout to History
                 </button>

@@ -30,7 +30,7 @@ GymLog is an offline-first Progressive Web App (PWA) for tracking gym workouts a
 ### Hybrid Data Architecture
 - **Guest Mode:** Use the app completely offline with all data living securely in the browser's `localStorage`. No account required.
 - **Cloud Sync:** Log in securely via Supabase Authentication to back up and synchronize your data across multiple devices.
-- **Offline-to-Cloud Migration:** Automatically detects offline data upon login and provides safe, atomic conflict resolution workflows to merge or replace existing cloud data.
+- **Offline-to-Cloud Migration:** Detects unresolved guest data upon login. Uploads to an empty account or explicitly replaces cloud data in one transaction; keeping cloud data preserves the guest copy. There is no automatic merge.
 
 ### Backup & Restore
 - **Offline Data Portability:** Download your entire workout and measurement history as a JSON backup file.
@@ -75,7 +75,7 @@ GymLog is an offline-first Progressive Web App (PWA) for tracking gym workouts a
 To run GymLog locally with cloud functionality, you need a Supabase project.
 
 1. Create a [Supabase](https://supabase.com) project.
-2. Execute the provided SQL migrations to create the required tables and the `replace_gymlog_data` RPC function.
+2. Apply the SQL migrations to create the tables and transaction RPCs. Existing projects must apply `supabase/migrations/20261016091534_p1_atomic_sync.sql` before deploying this frontend. See [sync rollout and verification](docs/sync-safety.md) for historical migration ordering and deployment checks.
 
 ### Installation
 ```bash
@@ -123,7 +123,7 @@ The app is deployed on **Netlify**. Push to a connected GitHub repo and Netlify 
 GymLog implements a secure hybrid approach:
 
 - **Guest Mode:** All data is stored in the browser's `localStorage`. Clearing browser storage or uninstalling the PWA will erase all local data.
-- **Cloud Mode:** All authenticated data is persisted strictly in the cloud via Supabase PostgreSQL, utilizing Row Level Security (RLS) to ensure absolute data privacy. Local state is kept strictly pessimistic to prevent out-of-sync conflicts.
+- **Cloud Mode:** All authenticated data is persisted strictly in the cloud via Supabase PostgreSQL, utilizing Row Level Security (RLS) to ensure absolute data privacy. The UI updates after confirmed writes and a fresh cloud snapshot. Uploads, replacements, session saves, and active-set deletion use database transactions. Replacement rejects a cloud snapshot that changed since the preview; session saves reject edited or deleted source sets and preserve newly added sets.
 
 ---
 

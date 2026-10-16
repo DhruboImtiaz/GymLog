@@ -4,20 +4,25 @@ import { uid, today, getDateOffsetIso } from '../utils/helpers';
 import { useAuth } from './AuthContext';
 import { useMigration } from './MigrationContext';
 import { SupabaseService } from '../lib/repository';
-import { MigrationService } from '../lib/migrationService';
-import { deepValidateBackup } from '../utils/restore';
+import { prepareGymLogData } from '../lib/syncOperations';
 
 const DataContext = createContext();
 
 export function DataProvider({ children }) {
-  const { user } = useAuth();
-  const { migrationState, loading: migrationLoading } = useMigration();
+  const { user, identityRef, identityEpoch } = useAuth();
+  const { migrationState, migrationUserId, loading: migrationLoading } = useMigration();
 
   const [data, setData] = useState(null);
+  const [loadedEpoch, setLoadedEpoch] = useState(null);
   const [isMalformed, setIsMalformed] = useState(false);
   const [sourceMode, setSourceMode] = useState('loading'); // 'guest' | 'migration' | 'cloud' | 'loading'
   const [cloudStatus, setCloudStatus] = useState('idle'); // 'idle' | 'loading' | 'ready' | 'error'
   const [cloudError, setCloudError] = useState(null);
+
+  const [cloudBusy, setCloudBusy] = useState(false);
+  const mutationRef = useRef(null);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const retryCloud = useCallback(() => setRefreshNonce(n => n + 1), []);
 
   const clearCloudError = useCallback(() => setCloudError(null), []);
 
@@ -27,6 +32,11 @@ export function DataProvider({ children }) {
   useEffect(() => {
     let active = true;
     const requestId = user?.id;
+    const epoch = identityRef.current.epoch;
+    setLoadedEpoch(epoch);
+    mutationRef.current = null;
+    setCloudBusy(false);
+    setIsMalformed(false);
 
     // Immediately clear data on transition
     setData(null);
@@ -47,7 +57,7 @@ export function DataProvider({ children }) {
       return;
     }
 
-    if (migrationState !== 'completed') {
+    if (migrationState !== 'completed' || migrationUserId !== requestId) {
       setSourceMode('migration');
       setData(null);
       return;
@@ -59,14 +69,14 @@ export function DataProvider({ children }) {
 
     async function fetchCloud() {
       try {
-        const cloudData = await SupabaseService.fetchGymLogData();
+        const cloudData = await SupabaseService.fetchGymLogData(requestId);
         if (!active) return;
-        if (currentUserIdRef.current !== requestId) return;
+        if (currentUserIdRef.current !== requestId || identityRef.current.epoch !== epoch) return;
         setData(cloudData);
         setCloudStatus('ready');
       } catch (err) {
         if (!active) return;
-        if (currentUserIdRef.current !== requestId) return;
+        if (currentUserIdRef.current !== requestId || identityRef.current.epoch !== epoch) return;
         console.error('Failed to load cloud data', err);
         setCloudStatus('error');
       }
@@ -77,83 +87,58 @@ export function DataProvider({ children }) {
     return () => {
       active = false;
     };
-  }, [user?.id, migrationState, migrationLoading]);
+  }, [user?.id, identityEpoch, identityRef, migrationUserId, migrationState, migrationLoading, refreshNonce]);
 
   const saveAndSetData = useCallback((newData) => {
-    if (isMalformed) return;
-    setData(newData);
-    saveGymLogData(newData);
-  }, [isMalformed]);
-
-  // Wrapper for cloud mutations to keep React state and Supabase in sync
-  const performCloudMutation = useCallback(async (mutationFn) => {
-    const requestId = currentUserIdRef.current;
-    if (!requestId || sourceMode !== 'cloud') return;
-
-    setCloudError(null);
-
+    if (isMalformed || identityRef.current.userId) return false;
     try {
-      await mutationFn();
-
-      // Protect against identity switch during the mutation itself
-      if (currentUserIdRef.current !== requestId) return;
-
-      // Fetch authoritative state after mutation
-      const newCloudData = await SupabaseService.fetchGymLogData();
-
-      // Protect against identity switch during the refetch
-      if (currentUserIdRef.current === requestId) {
-        setData(newCloudData);
-      }
-    } catch (err) {
-      // Protect against identity switch before setting error
-      if (currentUserIdRef.current !== requestId) return;
-
-      console.error('Cloud mutation failed:', err);
-      setCloudError(err.message || 'Failed to sync with cloud.');
+      saveGymLogData(newData);
+      setData(newData);
+      return true;
+    } catch {
+      setCloudError('Browser storage could not save this change. Free some storage and try again.');
+      return false;
     }
-  }, [sourceMode]);
+  }, [isMalformed, identityRef]);
 
-  const performCloudRestore = useCallback(async (migratedDataModel) => {
-    const requestId = currentUserIdRef.current;
-    if (!requestId || sourceMode !== 'cloud') return;
-
+  // Serialize local writes; server transactions handle cross-device concurrency.
+  const performCloudMutation = useCallback(async mutationFn => {
+    const { userId: requestId, epoch } = identityRef.current;
+    if (!requestId || sourceMode !== 'cloud' || migrationUserId !== requestId || mutationRef.current) return false;
+    const operation = { requestId, epoch };
+    mutationRef.current = operation;
+    const isCurrent = () => identityRef.current.userId === requestId && identityRef.current.epoch === epoch && mutationRef.current === operation;
+    setCloudBusy(true);
     setCloudError(null);
-
     try {
-      // 0. Pre-replacement validation
-      const domainModel = migratedDataModel['gymlog_data'] || { days: [], measurements: [] };
-      deepValidateBackup(domainModel);
-
-      // Deterministic seam to allow pre-RPC event loop interleaving for testing
-      await Promise.resolve();
-
-      // Guard immediately before the destructive operation
-      if (currentUserIdRef.current !== requestId || sourceMode !== 'cloud') return;
-
-      // 1. the destructive operation
-      await SupabaseService.replaceGymLogData(migratedDataModel['gymlog_data']);
-
-      if (currentUserIdRef.current !== requestId) return;
-
-      // 2. Authoritative refetch
-      const newCloudData = await SupabaseService.fetchGymLogData();
-
-      if (currentUserIdRef.current !== requestId) return;
-
-      // 3. Post-restore verification (authoritative)
-      const verificationModel = { days: [], measurements: [], ...domainModel };
-      await MigrationService.verifyMigration(verificationModel, newCloudData);
-
-      if (currentUserIdRef.current === requestId) {
-        setData(newCloudData);
-      }
+      await mutationFn(requestId);
+      if (!isCurrent()) return false;
+      const newCloudData = await SupabaseService.fetchGymLogData(requestId);
+      if (!isCurrent()) return false;
+      setData(newCloudData);
+      return true;
     } catch (err) {
-      if (currentUserIdRef.current !== requestId) return;
-      console.error('Cloud restore failed:', err);
-      setCloudError(err.message || 'Failed to restore cloud data.');
+      if (!isCurrent()) return false;
+      // Reconcile uncertain outcomes before exposing another write attempt.
+      try {
+        const latest = await SupabaseService.fetchGymLogData(requestId);
+        if (isCurrent()) setData(latest);
+      } catch {
+        if (isCurrent()) setCloudStatus('error');
+      }
+      if (isCurrent()) setCloudError(err.message || 'Sync failed. Refresh before trying again.');
+      return false;
+    } finally {
+      if (isCurrent()) { mutationRef.current = null; setCloudBusy(false); }
     }
-  }, [sourceMode]);
+  }, [sourceMode, identityRef, migrationUserId]);
+
+  const performCloudRestore = useCallback(async migratedDataModel => {
+    const domainModel = prepareGymLogData(migratedDataModel['gymlog_data']);
+    const expectedVersion = data?._version;
+    const operationId = crypto.randomUUID();
+    return performCloudMutation(userId => SupabaseService.replaceGymLogData(domainModel, userId, expectedVersion, operationId));
+  }, [data, performCloudMutation]);
 
   // Workout Days Operations
   const createDay = useCallback((name) => {
@@ -162,7 +147,7 @@ export function DataProvider({ children }) {
     if (sourceMode === 'cloud') {
       const newId = uid();
       const newPosition = data.days.length;
-      performCloudMutation(() => SupabaseService.createDay(newId, name, today(), newPosition));
+      return performCloudMutation(userId => SupabaseService.createDay(newId, name, today(), newPosition, userId));
     } else {
       const newData = {
         ...data,
@@ -171,7 +156,7 @@ export function DataProvider({ children }) {
           { id: uid(), name, createdAt: today(), exercises: [] }
         ]
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -179,13 +164,13 @@ export function DataProvider({ children }) {
     if (!newName || !data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      performCloudMutation(() => SupabaseService.renameDay(id, newName));
+      return performCloudMutation(userId => SupabaseService.renameDay(id, newName, userId));
     } else {
       const newData = {
         ...data,
         days: data.days.map(day => day.id === id ? { ...day, name: newName } : day)
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -193,13 +178,13 @@ export function DataProvider({ children }) {
     if (!data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      performCloudMutation(() => SupabaseService.deleteDay(id));
+      return performCloudMutation(userId => SupabaseService.deleteDay(id, userId));
     } else {
       const newData = {
         ...data,
         days: data.days.filter(day => day.id !== id)
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -211,7 +196,7 @@ export function DataProvider({ children }) {
       const day = data.days.find(d => d.id === dayId);
       const newPosition = day ? (day.exercises || []).length : 0;
       const newId = uid();
-      performCloudMutation(() => SupabaseService.addExercise(dayId, newId, name, newPosition));
+      return performCloudMutation(userId => SupabaseService.addExercise(dayId, newId, name, newPosition, userId));
     } else {
       const newData = {
         ...data,
@@ -228,7 +213,7 @@ export function DataProvider({ children }) {
           return day;
         })
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -236,7 +221,7 @@ export function DataProvider({ children }) {
     if (!newName || !data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      performCloudMutation(() => SupabaseService.renameExercise(exId, newName));
+      return performCloudMutation(userId => SupabaseService.renameExercise(exId, newName, userId));
     } else {
       const newData = {
         ...data,
@@ -250,7 +235,7 @@ export function DataProvider({ children }) {
           return day;
         })
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -258,7 +243,7 @@ export function DataProvider({ children }) {
     if (!data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      performCloudMutation(() => SupabaseService.deleteExercise(exId));
+      return performCloudMutation(userId => SupabaseService.deleteExercise(exId, userId));
     } else {
       const newData = {
         ...data,
@@ -272,7 +257,7 @@ export function DataProvider({ children }) {
           return day;
         })
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -285,7 +270,7 @@ export function DataProvider({ children }) {
       const ex = day ? (day.exercises || []).find(e => e.id === exId) : null;
       const newNum = ex ? (ex.sets || []).length + 1 : 1;
       const newId = uid();
-      performCloudMutation(() => SupabaseService.addSet(exId, newId, newNum, reps, weight));
+      return performCloudMutation(userId => SupabaseService.addSet(exId, newId, newNum, reps, weight, userId));
     } else {
       const newData = {
         ...data,
@@ -307,7 +292,7 @@ export function DataProvider({ children }) {
           };
         })
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -315,7 +300,7 @@ export function DataProvider({ children }) {
     if (!reps || isNaN(weight) || !data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      performCloudMutation(() => SupabaseService.updateSet(setId, reps, weight));
+      return performCloudMutation(userId => SupabaseService.updateSet(setId, reps, weight, userId));
     } else {
       const newData = {
         ...data,
@@ -335,7 +320,7 @@ export function DataProvider({ children }) {
           };
         })
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -343,15 +328,7 @@ export function DataProvider({ children }) {
     if (!data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      const day = data.days.find(d => d.id === dayId);
-      const ex = day ? (day.exercises || []).find(e => e.id === exId) : null;
-      let remainingSetsUpdates = [];
-      if (ex && ex.sets) {
-        remainingSetsUpdates = ex.sets
-          .filter(s => s.id !== setId)
-          .map((s, index) => ({ id: s.id, exerciseId: ex.id, newSetNumber: index + 1, reps: s.reps, weight: s.weight }));
-      }
-      performCloudMutation(() => SupabaseService.deleteSet(setId, remainingSetsUpdates));
+      return performCloudMutation(userId => SupabaseService.deleteSet(setId, userId));
     } else {
       const newData = {
         ...data,
@@ -374,7 +351,7 @@ export function DataProvider({ children }) {
           };
         })
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -388,14 +365,14 @@ export function DataProvider({ children }) {
       const ex = day ? (day.exercises || []).find(e => e.id === exId) : null;
       if (!ex || !ex.sets || ex.sets.length === 0) return;
 
-      const historyId = uid();
       const mappedSets = ex.sets.map(s => ({
+        id: s.id,
         num: s.num,
         reps: s.reps,
         weight: s.weight
       }));
 
-      performCloudMutation(() => SupabaseService.saveSession(exId, historyId, logDate, mappedSets));
+      return performCloudMutation(userId => SupabaseService.saveSession(exId, logDate, mappedSets, userId));
     } else {
       const day = data.days.find(d => d.id === dayId);
       if (!day) return;
@@ -436,7 +413,7 @@ export function DataProvider({ children }) {
           };
         })
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -447,7 +424,7 @@ export function DataProvider({ children }) {
     if (sourceMode === 'cloud') {
       const newId = uid();
       const newPosition = data.measurements.length;
-      performCloudMutation(() => SupabaseService.createMeasurement(newId, name, today(), newPosition));
+      return performCloudMutation(userId => SupabaseService.createMeasurement(newId, name, today(), newPosition, userId));
     } else {
       const newData = {
         ...data,
@@ -456,7 +433,7 @@ export function DataProvider({ children }) {
           { id: uid(), name, createdAt: today(), entries: [] }
         ]
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -464,7 +441,7 @@ export function DataProvider({ children }) {
     if (!newName || !data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      performCloudMutation(() => SupabaseService.renameMeasurement(id, newName));
+      return performCloudMutation(userId => SupabaseService.renameMeasurement(id, newName, userId));
     } else {
       const newData = {
         ...data,
@@ -472,7 +449,7 @@ export function DataProvider({ children }) {
           m.id === id ? { ...m, name: newName } : m
         )
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -480,13 +457,13 @@ export function DataProvider({ children }) {
     if (!data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      performCloudMutation(() => SupabaseService.deleteMeasurement(id));
+      return performCloudMutation(userId => SupabaseService.deleteMeasurement(id, userId));
     } else {
       const newData = {
         ...data,
         measurements: (data.measurements || []).filter(m => m.id !== id)
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -496,7 +473,7 @@ export function DataProvider({ children }) {
 
     if (sourceMode === 'cloud') {
       const newId = uid();
-      performCloudMutation(() => SupabaseService.addMeasurementEntry(measId, newId, value, unit, logDate));
+      return performCloudMutation(userId => SupabaseService.addMeasurementEntry(measId, newId, value, unit, logDate, userId));
     } else {
       const newEntry = { id: uid(), date: logDate, value, unit };
 
@@ -513,7 +490,7 @@ export function DataProvider({ children }) {
           };
         })
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -521,7 +498,7 @@ export function DataProvider({ children }) {
     if (!data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      performCloudMutation(() => SupabaseService.deleteMeasurementEntry(entryId));
+      return performCloudMutation(userId => SupabaseService.deleteMeasurementEntry(entryId, userId));
     } else {
       const newData = {
         ...data,
@@ -533,7 +510,7 @@ export function DataProvider({ children }) {
           };
         })
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -543,13 +520,13 @@ export function DataProvider({ children }) {
 
     if (sourceMode === 'cloud') {
       const payload = newDays.map((d, index) => ({ id: d.id, position: index }));
-      performCloudMutation(() => SupabaseService.reorderDays(payload));
+      return performCloudMutation(userId => SupabaseService.reorderDays(payload, userId));
     } else {
       const newData = {
         ...data,
         days: newDays
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -558,7 +535,7 @@ export function DataProvider({ children }) {
 
     if (sourceMode === 'cloud') {
       const payload = newExercises.map((e, index) => ({ id: e.id, position: index }));
-      performCloudMutation(() => SupabaseService.reorderExercises(payload));
+      return performCloudMutation(userId => SupabaseService.reorderExercises(payload, userId));
     } else {
       const newData = {
         ...data,
@@ -572,7 +549,7 @@ export function DataProvider({ children }) {
           return day;
         })
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
@@ -581,22 +558,25 @@ export function DataProvider({ children }) {
 
     if (sourceMode === 'cloud') {
       const payload = newMeasurements.map((m, index) => ({ id: m.id, position: index }));
-      performCloudMutation(() => SupabaseService.reorderMeasurements(payload));
+      return performCloudMutation(userId => SupabaseService.reorderMeasurements(payload, userId));
     } else {
       const newData = {
         ...data,
         measurements: newMeasurements
       };
-      saveAndSetData(newData);
+      return saveAndSetData(newData);
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
 
+  const sameIdentity = loadedEpoch === identityRef.current.epoch;
   const value = {
-    data,
-    isMalformed,
-    sourceMode,
+    data: sameIdentity ? data : null,
+    isMalformed: sameIdentity && isMalformed,
+    sourceMode: sameIdentity ? sourceMode : 'loading',
     cloudStatus,
+    cloudBusy,
+    retryCloud,
     cloudError,
     clearCloudError,
     createDay,
