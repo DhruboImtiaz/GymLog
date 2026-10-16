@@ -372,7 +372,7 @@ export function DataProvider({ children }) {
         weight: s.weight
       }));
 
-      return performCloudMutation(userId => SupabaseService.saveSession(exId, logDate, mappedSets, userId));
+      return performCloudMutation(userId => SupabaseService.saveSession(exId, logDate, mappedSets, userId, data._generation));
     } else {
       const day = data.days.find(d => d.id === dayId);
       if (!day) return;

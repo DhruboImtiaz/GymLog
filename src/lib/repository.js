@@ -109,15 +109,15 @@ export const SupabaseService = {
     if (error) throw new RepositoryError(error.message, error.code);
   },
 
-  saveSession: async (exerciseId, logDate, sets, expectedUserId) => {
+  saveSession: async (exerciseId, logDate, sets, expectedUserId, datasetGeneration) => {
     // Identical active-set snapshots share an operation ID across retries/devices.
     const orderedSets = sets.map(s => ({ id: s.id, num: s.num, reps: s.reps, weight: s.weight }))
       .sort((a, b) => a.num - b.num || a.id.localeCompare(b.id));
-    const operationId = 'session-' + await fingerprint({ exerciseId, logDate, sets: orderedSets });
+    const operationId = 'session-' + await fingerprint({ exerciseId, logDate, sets: orderedSets, datasetGeneration });
     await getUserId(expectedUserId);
     const { data, error } = await supabase.rpc('save_gymlog_session', {
       expected_user_id: expectedUserId, operation_id: operationId,
-      exercise_id: exerciseId, log_date: logDate, sets: orderedSets
+      exercise_id: exerciseId, log_date: logDate, sets: orderedSets, dataset_generation: datasetGeneration
     });
     if (error) throw new RepositoryError(error.message, error.code);
     return data;

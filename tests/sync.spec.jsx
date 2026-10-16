@@ -2,7 +2,7 @@ import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 import { beforeEach, afterEach, test, expect, vi } from 'vitest';
 
-const mock = vi.hoisted(() => ({ user: { id: 'A' }, initial: null, listeners: new Set(), cloud: { days: [], measurements: [], _version: 'v0' }, rpc: vi.fn(), getSession: vi.fn() }));
+const mock = vi.hoisted(() => ({ user: { id: 'A' }, initial: null, listeners: new Set(), cloud: { days: [], measurements: [], _version: 'v0', _generation: '0' }, rpc: vi.fn(), getSession: vi.fn() }));
 vi.mock('../src/lib/supabaseClient.js', () => ({ supabase: {
   auth: {
     getUser: vi.fn(async () => ({ data: { user: mock.user } })),
@@ -33,11 +33,11 @@ beforeEach(() => {
   vi.stubGlobal('localStorage', { getItem: k => values.get(k) ?? null, setItem: (k,v) => values.set(k,String(v)), removeItem: k => values.delete(k), clear: () => values.clear() });
   vi.stubGlobal('window', new EventTarget());
   latest=null; renderer=null; mock.user={ id:'A' }; mock.listeners.clear();
-  mock.cloud={days:[],measurements:[],_version:'v0'};
+  mock.cloud={days:[],measurements:[],_version:'v0',_generation:'0'};
   mock.getSession.mockReset().mockImplementation(async () => ({ data: { session: mock.user ? { user:mock.user } : null } }));
   mock.rpc.mockReset().mockImplementation(async (name,args) => {
     if (name==='get_gymlog_snapshot') return { data:structuredClone(mock.cloud),error:null };
-    if (name==='apply_gymlog_migration') { mock.cloud={...structuredClone(args.payload),_version:'v1'}; return {data:{success:true},error:null}; }
+    if (name==='apply_gymlog_migration') { mock.cloud={...structuredClone(args.payload),_version:'v1',_generation:'1'}; return {data:{success:true},error:null}; }
     return {data:{success:true},error:null};
   });
 });
@@ -52,7 +52,7 @@ test('legacy in_progress becomes an actionable migration, not a permanent lock',
 test('guest edits after logout are evaluated despite an earlier completed status', async () => {
   const original=guest(); localStorage.setItem('gymlog_data',JSON.stringify(original));
   await MigrationService.acknowledgeGuest('A',original,()=>true);
-  mock.cloud={...original,_version:'v1'};
+  mock.cloud={...original,_version:'v1',_generation:'1'};
   await mount(); await settle(() => latest.data.sourceMode==='cloud' && latest.data.data);
   await act(async () => emit(null)); await settle(() => latest.data.sourceMode==='guest');
   await act(async () => latest.data.createDay('New guest day'));
@@ -128,15 +128,17 @@ test('malformed guest data fails validation before upload', async () => {
 });
 test('repository rejects the wrong initiating account before sending RPC', async () => {
   mock.user={id:'B'};
-  await expect(SupabaseService.saveSession('e','2026-10-16',guest().days[0].exercises[0].sets,'A')).rejects.toThrow('account changed');
+  await expect(SupabaseService.saveSession('e','2026-10-16',guest().days[0].exercises[0].sets,'A','1')).rejects.toThrow('account changed');
   expect(mock.rpc).not.toHaveBeenCalled();
 });
 test('session retries from identical snapshots use the same ID', async () => {
   const sets=guest().days[0].exercises[0].sets;
-  await SupabaseService.saveSession('e','2026-10-16',sets,'A');
-  await SupabaseService.saveSession('e','2026-10-16',sets,'A');
+  await SupabaseService.saveSession('e','2026-10-16',sets,'A','1');
+  await SupabaseService.saveSession('e','2026-10-16',sets,'A','1');
   expect(mock.rpc.mock.calls[0][1].operation_id).toBe(mock.rpc.mock.calls[1][1].operation_id);
   expect(mock.rpc.mock.calls[0][1].sets[0].id).toBe('s');
+  await SupabaseService.saveSession('e','2026-10-16',sets,'A','2');
+  expect(mock.rpc.mock.calls[2][1].operation_id).not.toBe(mock.rpc.mock.calls[0][1].operation_id);
 });
 test('completion is scoped to a guest fingerprint, with deterministic equal-date ordering', async () => {
   const local=guest(); local.days[0].exercises[0].history=[{id:'b',date:'2026-10-16',sets:[]},{id:'a',date:'2026-10-16',sets:[]}];
@@ -155,7 +157,7 @@ test('stale initial session cannot overwrite a newer auth event', async () => {
   expect(latest.auth.user.id).toBe('B'); expect(latest.auth.identityRef.current.userId).toBe('B');
 });
 test('double session submission returns success only after persistence and refetch', async () => {
-  mock.cloud={...guest(),_version:'v1'};
+  mock.cloud={...guest(),_version:'v1',_generation:'1'};
   await mount(); await settle(() => latest.data.sourceMode==='cloud' && latest.data.data);
   const pending=deferred(); const defaultRPC=mock.rpc.getMockImplementation();
   mock.rpc.mockImplementation((name,args)=>name==='save_gymlog_session'?pending.promise:defaultRPC(name,args));
@@ -194,7 +196,7 @@ test('guest restore ignores imported sync metadata and preserves existing recove
   expect(localStorage.getItem('gymlog_migration_status_B')).toBe(null);
 });
 test('a failed cloud session reports failure and reconciles before retry is enabled', async () => {
-  mock.cloud={...guest(),_version:'v1'};
+  mock.cloud={...guest(),_version:'v1',_generation:'1'};
   await mount(); await settle(() => latest.data.sourceMode==='cloud' && latest.data.data);
   const defaultRPC=mock.rpc.getMockImplementation();
   mock.rpc.mockImplementation((name,args)=>name==='save_gymlog_session'?Promise.resolve({error:{message:'Workout changed',code:'40001'}}):defaultRPC(name,args));

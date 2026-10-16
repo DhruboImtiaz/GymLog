@@ -6,16 +6,21 @@ GRANT USAGE ON SCHEMA gymlog_private TO authenticated;
 
 CREATE TABLE public.gymlog_sync_operations (
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  operation_sequence bigint GENERATED ALWAYS AS IDENTITY,
+  kind text NOT NULL CHECK (kind IN ('migration', 'session')),
   operation_id text NOT NULL CHECK (length(operation_id) BETWEEN 1 AND 200),
   request_hash text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, operation_id)
 );
+CREATE INDEX gymlog_sync_generation ON public.gymlog_sync_operations(user_id, kind, operation_sequence DESC);
 ALTER TABLE public.gymlog_sync_operations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY own_sync_operations ON public.gymlog_sync_operations FOR ALL TO authenticated
   USING ((select auth.uid()) = user_id) WITH CHECK ((select auth.uid()) = user_id);
 REVOKE ALL ON public.gymlog_sync_operations FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT ON public.gymlog_sync_operations TO authenticated;
+REVOKE ALL ON SEQUENCE public.gymlog_sync_operations_operation_sequence_seq FROM PUBLIC, anon;
+GRANT USAGE ON SEQUENCE public.gymlog_sync_operations_operation_sequence_seq TO authenticated;
 
 CREATE FUNCTION gymlog_private.require_user(expected_user_id uuid) RETURNS uuid
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
@@ -70,7 +75,8 @@ LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path = '' AS $$
 DECLARE doc jsonb; BEGIN
   PERFORM gymlog_private.require_user(expected_user_id);
   doc := gymlog_private.document();
-  RETURN doc || jsonb_build_object('_version', md5(doc::text));
+  RETURN doc || jsonb_build_object('_version', md5(doc::text), '_generation',
+    COALESCE((SELECT max(o.operation_sequence) FROM public.gymlog_sync_operations o WHERE o.user_id=auth.uid() AND o.kind='migration'), 0)::text);
 END; $$;
 
 CREATE FUNCTION gymlog_private.require_array(value jsonb) RETURNS void
@@ -307,22 +313,25 @@ BEGIN
     RAISE EXCEPTION 'Cloud data already exists. Refresh the conflict preview.' USING ERRCODE='40001';
   END IF;
   PERFORM gymlog_private.replace_data(payload);
-  INSERT INTO public.gymlog_sync_operations(user_id,operation_id,request_hash) VALUES(uid,operation_id,request_hash);
+  INSERT INTO public.gymlog_sync_operations(user_id,operation_id,request_hash,kind) VALUES(uid,operation_id,request_hash,'migration');
   RETURN jsonb_build_object('success',true,'replayed',false);
 END; $$;
 
-CREATE FUNCTION public.save_gymlog_session(expected_user_id uuid, operation_id text, exercise_id text, log_date date, sets jsonb)
+CREATE FUNCTION public.save_gymlog_session(expected_user_id uuid, operation_id text, exercise_id text, log_date date, sets jsonb, dataset_generation bigint)
 RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
 DECLARE uid uuid := gymlog_private.require_user(expected_user_id); prior_hash text; request_hash text; s jsonb;
 BEGIN
   PERFORM gymlog_private.require_array(sets);
   IF jsonb_array_length(sets)=0 OR log_date IS NULL OR operation_id IS NULL THEN RAISE EXCEPTION 'No workout to save.' USING ERRCODE='22023'; END IF;
-  request_hash := md5(jsonb_build_object('kind','session','exercise',exercise_id,'date',log_date,'sets',sets)::text);
+  request_hash := md5(jsonb_build_object('kind','session','exercise',exercise_id,'date',log_date,'sets',sets,'generation',dataset_generation)::text);
   PERFORM pg_advisory_xact_lock(hashtextextended('gymlog:' || uid::text, 0));
   SELECT o.request_hash INTO prior_hash FROM public.gymlog_sync_operations o WHERE o.user_id=uid AND o.operation_id=save_gymlog_session.operation_id;
   IF FOUND THEN
     IF prior_hash <> request_hash THEN RAISE EXCEPTION 'Operation ID already used for different data.' USING ERRCODE='22023'; END IF;
     RETURN jsonb_build_object('success',true,'replayed',true);
+  END IF;
+  IF COALESCE((SELECT max(o.operation_sequence) FROM public.gymlog_sync_operations o WHERE o.user_id=uid AND o.kind='migration'), 0) IS DISTINCT FROM dataset_generation THEN
+    RAISE EXCEPTION 'Your dataset was replaced on another device. Refresh before saving.' USING ERRCODE='40001';
   END IF;
   IF (SELECT count(DISTINCT value->>'id') FROM jsonb_array_elements(sets)) <> jsonb_array_length(sets) THEN
     RAISE EXCEPTION 'Duplicate active sets.' USING ERRCODE='22023';
@@ -340,7 +349,7 @@ BEGIN
   DELETE FROM public.active_sets a WHERE a.user_id=uid AND a.exercise_id=save_gymlog_session.exercise_id AND a.id IN (SELECT value->>'id' FROM jsonb_array_elements(sets));
   WITH numbered AS (SELECT a.id, row_number() OVER(ORDER BY a.set_number,a.id)::int AS n FROM public.active_sets a WHERE a.user_id=uid AND a.exercise_id=save_gymlog_session.exercise_id)
     UPDATE public.active_sets a SET set_number=n.n FROM numbered n WHERE a.user_id=uid AND a.id=n.id;
-  INSERT INTO public.gymlog_sync_operations(user_id,operation_id,request_hash) VALUES(uid,operation_id,request_hash);
+  INSERT INTO public.gymlog_sync_operations(user_id,operation_id,request_hash,kind) VALUES(uid,operation_id,request_hash,'session');
   RETURN jsonb_build_object('success',true,'replayed',false);
 END; $$;
 
@@ -366,6 +375,6 @@ END; $$;
 -- Explicit grants also work on projects with restrictive default privileges.
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA gymlog_private FROM PUBLIC, anon;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA gymlog_private TO authenticated;
-REVOKE ALL ON FUNCTION public.get_gymlog_snapshot(uuid), public.apply_gymlog_migration(uuid,text,text,jsonb,boolean), public.save_gymlog_session(uuid,text,text,date,jsonb), public.delete_gymlog_set(uuid,text), public.add_gymlog_set(uuid,text,text,int,numeric) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.get_gymlog_snapshot(uuid), public.apply_gymlog_migration(uuid,text,text,jsonb,boolean), public.save_gymlog_session(uuid,text,text,date,jsonb), public.delete_gymlog_set(uuid,text), public.add_gymlog_set(uuid,text,text,int,numeric) TO authenticated;
+REVOKE ALL ON FUNCTION public.get_gymlog_snapshot(uuid), public.apply_gymlog_migration(uuid,text,text,jsonb,boolean), public.save_gymlog_session(uuid,text,text,date,jsonb,bigint), public.delete_gymlog_set(uuid,text), public.add_gymlog_set(uuid,text,text,int,numeric) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_gymlog_snapshot(uuid), public.apply_gymlog_migration(uuid,text,text,jsonb,boolean), public.save_gymlog_session(uuid,text,text,date,jsonb,bigint), public.delete_gymlog_set(uuid,text), public.add_gymlog_set(uuid,text,text,int,numeric) TO authenticated;
 NOTIFY pgrst, 'reload schema';

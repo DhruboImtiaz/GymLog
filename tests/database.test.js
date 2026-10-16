@@ -14,8 +14,9 @@ async function migrate(payload, version, { id = 'upload', replace = false, user 
   return (await db.query('select public.apply_gymlog_migration($1,$2,$3,$4::jsonb,$5) as result', [user, id, version, JSON.stringify(payload), replace])).rows[0].result;
 }
 async function seed() { await migrate(guest(), (await snapshot())._version); }
-async function save(sets = guest().days[0].exercises[0].sets, operation = 'session', user = A) {
-  return (await db.query('select public.save_gymlog_session($1,$2,$3,$4,$5::jsonb) as result', [user, operation, 'e', '2026-10-16', JSON.stringify(sets)])).rows[0].result;
+async function save(sets = guest().days[0].exercises[0].sets, operation = 'session', user = A, generation) {
+  generation ??= (await snapshot(user))._generation;
+  return (await db.query('select public.save_gymlog_session($1,$2,$3,$4,$5::jsonb,$6) as result', [user, operation, 'e', '2026-10-16', JSON.stringify(sets),generation])).rows[0].result;
 }
 
 before(async () => {
@@ -108,7 +109,7 @@ test('delete renumbers current rows without overwriting remote values or resurre
 test('account mismatch rejects all RPC writes and old replacement endpoint is denied', async () => {
   await seed(); await identity(B);
   await assert.rejects(snapshot(A), /Account changed/);
-  await assert.rejects(save(undefined,'wrong',A), /Account changed/);
+  await assert.rejects(save(undefined,'wrong',A,'0'), /Account changed/);
   await assert.rejects(migrate(guest(),'stale'), /Account changed/);
   await assert.rejects(db.query('select public.delete_gymlog_set($1,$2)',[A,'s']), /Account changed/);
   await assert.rejects(db.query('select public.replace_gymlog_data($1::jsonb)',[JSON.stringify(guest())]), /permission denied/);
@@ -143,4 +144,23 @@ test('RLS is enabled on every data table and ownership cannot be reassigned', as
   assert.equal(rows.length,8); assert.ok(rows.every(row=>row.relrowsecurity));
   await seed();
   await assert.rejects(db.query('update public.workout_days set user_id=$1 where id=$2',[B,'d']),/row-level security/);
+});
+
+test('restored active sets can be saved again in a new dataset generation', async () => {
+  await seed(); const generation=(await snapshot())._generation;
+  await save(undefined,'old-session',A,generation);
+  await migrate(guest(),(await snapshot())._version,{id:'restore',replace:true});
+  const restored=await snapshot(); assert.notEqual(restored._generation,generation);
+  // A lost-response replay from before restore must preserve the restored sets.
+  assert.equal((await save(undefined,'old-session',A,generation)).replayed,true);
+  assert.equal((await snapshot()).days[0].exercises[0].sets.length,1);
+  await save(undefined,'new-generation-session',A,restored._generation);
+  assert.equal((await snapshot()).days[0].exercises[0].sets.length,0);
+  assert.equal((await snapshot()).days[0].exercises[0].history.length,1);
+});
+test('an uncommitted session from a replaced dataset is rejected even with identical IDs', async () => {
+  await seed(); const generation=(await snapshot())._generation;
+  await migrate(guest(),(await snapshot())._version,{id:'restore',replace:true});
+  await assert.rejects(save(undefined,'never-committed',A,generation),/dataset was replaced/);
+  assert.equal((await snapshot()).days[0].exercises[0].sets.length,1);
 });
