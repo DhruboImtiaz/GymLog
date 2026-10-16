@@ -53,11 +53,12 @@ The GymLog project became active during testing. Read-only inspection confirmed:
 - None of `get_gymlog_snapshot`, `apply_gymlog_migration`, `save_gymlog_session`, or `mutate_gymlog_data` is installed.
 - The migration history endpoint returns an empty list, although the older schema exists. Historical application was therefore verified from schema, not migration records.
 - The legacy restore endpoint remains executable by authenticated users and is denied to anonymous users.
+- Live HTTP requests without a user token were denied with HTTP 401 for all seven workout tables. Managed PostgREST returned HTTP 404/PGRST202 for the missing snapshot RPC.
 - Security advisors report one warning: [leaked-password protection is disabled](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
 
 A private backup of all seven workout tables was captured before proposing any live change. It is outside the Git checkout and has owner-only file permissions. No live schema or workout data was changed.
 
-**Live write-flow tests remain pending migration approval or a separate staging target.** Applying P1 revokes the old restore endpoint, so old frontend restore behavior changes until the updated frontend is deployed. The approval request identifies both reviewed migrations from draft PRs #1 and #2 and the intended isolated-account tests.
+**Live write-flow tests are blocked by the Supabase migration connector.** The user explicitly approved both reviewed migrations and isolated-account tests. The migration tool repeatedly returned `McpServerError: Invalid or expired requestState`; after the interrupted attempt, SQL inspection still found the new functions absent. No migration succeeded. Further user approval is not required for the already authorized migrations. Applying P1 will revoke the old restore endpoint, so old frontend restore behavior changes until the updated frontend is deployed.
 
 ## Limits that still require rollout testing
 
