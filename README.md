@@ -50,7 +50,7 @@ GymLog is an offline-first Progressive Web App (PWA) for tracking gym workouts a
 
 ### Browser Navigation
 - Full `history.pushState` / `popstate` support — the browser back button works correctly between pages
-- Deep-linkable via Netlify redirects (`_redirects`) — all routes fall back to `index.html`
+- Deep-linkable via `netlify.toml` — all routes fall back to `index.html`
 
 ---
 
@@ -92,7 +92,7 @@ Create a `.env.local` file in the root directory:
 
 ```env
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 ```
 
 ### Run Locally
@@ -110,7 +110,7 @@ Then visit `http://localhost:3000`.
 
 ## Deployment
 
-The app is deployed on **Netlify**. Push to a connected GitHub repo and Netlify will deploy automatically. The `_redirects` file rewrites all paths to `index.html` so navigation works correctly on refresh or direct URL access.
+The app is deployed on **Netlify**. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in the project's build environment before deploying. Push to the connected GitHub repo and Netlify will deploy automatically. `netlify.toml` builds and publishes `dist`, rewrites app routes to `index.html`, and makes browsers revalidate the service worker so installed apps receive updates.
 
 ```text
 /* /index.html 200
