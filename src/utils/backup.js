@@ -12,9 +12,11 @@ export function generateBackup(currentData = null, sourceMode = 'guest') {
     }
   }
 
-  if (sourceMode === 'cloud' && currentData) {
+  if (currentData) {
     data['gymlog_data'] = JSON.stringify(currentData);
   }
+
+  if (!data['gymlog_data']) data['gymlog_data'] = JSON.stringify({ days: [], measurements: [] });
 
   const browser = navigator.userAgent;
   const platform = navigator.platform;

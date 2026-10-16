@@ -1,15 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import useWriteCompletion from '../../hooks/useWriteCompletion';
 import { executeRestore } from '../../utils/restore';
 import { runMigrations } from '../../utils/migrations';
 import { useGymLogData } from '../../context/DataContext';
 
 export default function BackupPreviewModal({ backup, sourceMode, onClose }) {
-  const { performCloudRestore } = useGymLogData();
+  const { performCloudRestore, data } = useGymLogData();
   const [isRestoring, setIsRestoring] = useState(false);
+  const [error, setError] = useState(null);
+  const previewVersion = useRef(data?._version);
+  useWriteCompletion('restore', onClose);
 
   if (!backup) return null;
 
   const handleConfirm = async () => {
+    setError(null);
     try {
       if (sourceMode === 'cloud') {
         setIsRestoring(true);
@@ -29,22 +34,17 @@ export default function BackupPreviewModal({ backup, sourceMode, onClose }) {
           throw new Error('Failed to parse backup for cloud restore.');
         }
 
-        await performCloudRestore(migratedDataModel);
-        onClose();
+        if (await performCloudRestore(migratedDataModel, previewVersion.current)) onClose();
+        else setIsRestoring(false);
       } else {
         executeRestore(backup);
         onClose();
       }
     } catch (error) {
-      if (sourceMode !== 'cloud') {
-        alert(error.message);
-      } else {
-        // DataContext will handle cloudError internally via performCloudRestore
-        alert(error.message); // wait, instruction says "Do not introduce browser alert() for errors."
-      }
+      setError(error.message);
       setIsRestoring(false);
-      onClose();
     }
+
   };
 
   let dtStr = 'Unknown';
@@ -84,6 +84,7 @@ export default function BackupPreviewModal({ backup, sourceMode, onClose }) {
   return (
     <div className="modal-overlay open" onClick={(e) => { if (e.target.classList.contains('modal-overlay')) onClose(); }}>
       <div className="modal-box">
+        {error && <div role="alert"><p>{error}</p>{error.startsWith('Workout data was restored') && <button onClick={() => window.location.reload()}>Reload data</button>}</div>}
         <div className="modal-header">
           <span className="modal-title">GymLog Backup</span>
           <button className="modal-close" onClick={onClose}>×</button>

@@ -30,8 +30,8 @@ export default function ExerciseDetail() {
     return addSet(dayId, exerciseId, reps, weight);
   };
 
-  const handleUpdateSet = (setId, reps, weight) => {
-    updateSet(dayId, exerciseId, setId, reps, weight);
+  const handleUpdateSet = (setId, reps, weight, expectedVersion) => {
+    return updateSet(dayId, exerciseId, setId, reps, weight, expectedVersion);
   };
 
   const handleDeleteSet = (setId) => {

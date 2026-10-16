@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { useMigration } from './MigrationContext';
 import { SupabaseService } from '../lib/repository';
 import { prepareGymLogData } from '../lib/syncOperations';
+import { prepareCloudWrite, readPendingWrites, executeCloudWrite, acknowledgeCloudWrite, forgetCloudWrite, isDefinitiveRejection } from '../lib/cloudWriteJournal';
 
 const DataContext = createContext();
 
@@ -15,130 +16,229 @@ export function DataProvider({ children }) {
   const [data, setData] = useState(null);
   const [loadedEpoch, setLoadedEpoch] = useState(null);
   const [isMalformed, setIsMalformed] = useState(false);
-  const [sourceMode, setSourceMode] = useState('loading'); // 'guest' | 'migration' | 'cloud' | 'loading'
-  const [cloudStatus, setCloudStatus] = useState('idle'); // 'idle' | 'loading' | 'ready' | 'error'
+  const [sourceMode, setSourceMode] = useState('loading');
+  const [cloudStatus, setCloudStatus] = useState('idle');
   const [cloudError, setCloudError] = useState(null);
-
   const [cloudBusy, setCloudBusy] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pendingWrite, setPendingWrite] = useState(null);
+  const [completedWrite, setCompletedWrite] = useState(null);
+  const dataRef = useRef(null);
+  const modeRef = useRef('loading');
+  const guestRawRef = useRef(null);
   const mutationRef = useRef(null);
-  const [refreshNonce, setRefreshNonce] = useState(0);
-  const retryCloud = useCallback(() => setRefreshNonce(n => n + 1), []);
-
+  const readSequenceRef = useRef(0);
+  const readFlightRef = useRef(null);
+  const refreshQueuedRef = useRef(false);
+  const readyRef = useRef(false);
+  readyRef.current = !migrationLoading && migrationState === 'completed' && migrationUserId === user?.id ? { userId: user?.id, epoch: identityEpoch } : null;
   const clearCloudError = useCallback(() => setCloudError(null), []);
 
-  const currentUserIdRef = useRef(user?.id);
-  currentUserIdRef.current = user?.id; // Synchronize explicitly during render
+  const syncPendingWrites = useCallback(userId => {
+    const pending = readPendingWrites(userId);
+    setPendingWrite(pending[0] || null);
+    return pending;
+  }, []);
+
+  const loadGuest = useCallback(() => {
+    try {
+      const loaded = getGymLogData();
+      guestRawRef.current = localStorage.getItem('gymlog_data');
+      setIsMalformed(loaded === null);
+      dataRef.current = loaded;
+      setData(loaded);
+      setCloudError(null);
+      setCloudStatus('idle');
+      return loaded !== null;
+    } catch {
+      dataRef.current = null;
+      setData(null);
+      setCloudStatus('error');
+      setCloudError('Browser storage is unavailable. Enable storage access and retry loading your data.');
+      return false;
+    }
+  }, []);
+
+  const fetchSnapshot = useCallback(async (preserveError = false) => {
+    const { userId, epoch } = identityRef.current;
+    if (!userId || modeRef.current !== 'cloud' || readyRef.current?.userId !== userId || readyRef.current?.epoch !== epoch) return false;
+    const existing = readFlightRef.current;
+    if (existing?.epoch === epoch && existing.sequence === readSequenceRef.current) return existing.promise;
+    const sequence = ++readSequenceRef.current;
+    const isCurrent = () => identityRef.current.userId === userId && identityRef.current.epoch === epoch && readSequenceRef.current === sequence && modeRef.current === 'cloud';
+    setRefreshing(true);
+    const promise = (async () => {
+      try {
+        const cloud = await SupabaseService.fetchGymLogData(userId);
+        if (!isCurrent()) return false;
+        if (dataRef.current?._version !== cloud._version || dataRef.current?._generation !== cloud._generation) {
+          dataRef.current = cloud;
+          setData(cloud);
+        }
+        setCloudStatus('ready');
+        if (!preserveError) setCloudError(null);
+        try {
+          // Acknowledged writes need a fresh read, never another write attempt.
+          for (const op of readPendingWrites(userId)) {
+            if (op.phase === 'acknowledged') { forgetCloudWrite(op); setCompletedWrite(op); }
+          }
+          syncPendingWrites(userId);
+        } catch (e) { setCloudError(e.message); }
+        return true;
+      } catch (e) {
+        if (isCurrent()) {
+          setCloudStatus(dataRef.current ? 'stale' : 'error');
+          if (!preserveError) setCloudError(e.message || 'Could not refresh cloud data. Retry when connected.');
+        }
+        return false;
+      } finally {
+        if (isCurrent()) setRefreshing(false);
+        if (readFlightRef.current?.sequence === sequence) readFlightRef.current = null;
+      }
+    })();
+    readFlightRef.current = { epoch, sequence, promise };
+    return promise;
+  }, [identityRef, syncPendingWrites]);
+
+  const refreshCloud = useCallback(() => {
+    if (!identityRef.current.userId && modeRef.current === 'guest') return Promise.resolve(loadGuest());
+    if (mutationRef.current) { refreshQueuedRef.current = true; return Promise.resolve(false); }
+    return fetchSnapshot();
+  }, [identityRef, loadGuest, fetchSnapshot]);
+  const retryCloud = refreshCloud;
 
   useEffect(() => {
-    let active = true;
-    const requestId = user?.id;
-    const epoch = identityRef.current.epoch;
-    setLoadedEpoch(epoch);
+    const { epoch } = identityRef.current;
+    ++readSequenceRef.current;
+    readFlightRef.current = null;
     mutationRef.current = null;
-    setCloudBusy(false);
-    setIsMalformed(false);
-
-    // Immediately clear data on transition
+    refreshQueuedRef.current = false;
+    dataRef.current = null;
     setData(null);
-    setSourceMode('loading');
+    setLoadedEpoch(epoch);
+    setCloudBusy(false);
+    setRefreshing(false);
+    setIsMalformed(false);
+    setPendingWrite(null);
+    setCompletedWrite(null);
     setCloudError(null);
     setCloudStatus('idle');
-
+    modeRef.current = 'loading';
+    setSourceMode('loading');
     if (migrationLoading) return;
-
     if (!user) {
-      setSourceMode('guest');
-      const loadedData = getGymLogData();
-      if (loadedData === null) {
-        setIsMalformed(true);
-      } else {
-        setData(loadedData);
+      modeRef.current = 'guest'; setSourceMode('guest'); loadGuest();
+    } else if (!readyRef.current) {
+      modeRef.current = 'migration'; setSourceMode('migration');
+    } else {
+      modeRef.current = 'cloud'; setSourceMode('cloud'); setCloudStatus('loading');
+      try { syncPendingWrites(user.id); } catch (e) { setCloudError(e.message); }
+      fetchSnapshot();
+    }
+    return () => { ++readSequenceRef.current; mutationRef.current = null; modeRef.current = 'loading'; };
+  }, [user?.id, identityEpoch, identityRef, migrationUserId, migrationState, migrationLoading, loadGuest, syncPendingWrites, fetchSnapshot]);
+
+  useEffect(() => {
+    const visible = () => typeof document === 'undefined' || document.visibilityState !== 'hidden';
+    const refresh = () => { if (visible() && (typeof navigator === 'undefined' || navigator.onLine !== false)) refreshCloud(); };
+    const onStorage = event => {
+      if (modeRef.current === 'guest' && (!event.key || event.key === 'gymlog_data')) loadGuest();
+      const userId = identityRef.current.userId;
+      if (userId && (!event.key || event.key.startsWith(`gymlog_pending_write_${userId}_`))) {
+        try { syncPendingWrites(userId); } catch (e) { setCloudError(e.message); }
+        refresh();
       }
-      return;
-    }
-
-    if (migrationState !== 'completed' || migrationUserId !== requestId) {
-      setSourceMode('migration');
-      setData(null);
-      return;
-    }
-
-    // Cloud Mode
-    setSourceMode('cloud');
-    setCloudStatus('loading');
-
-    async function fetchCloud() {
-      try {
-        const cloudData = await SupabaseService.fetchGymLogData(requestId);
-        if (!active) return;
-        if (currentUserIdRef.current !== requestId || identityRef.current.epoch !== epoch) return;
-        setData(cloudData);
-        setCloudStatus('ready');
-      } catch (err) {
-        if (!active) return;
-        if (currentUserIdRef.current !== requestId || identityRef.current.epoch !== epoch) return;
-        console.error('Failed to load cloud data', err);
-        setCloudStatus('error');
-      }
-    }
-
-    fetchCloud();
-
-    return () => {
-      active = false;
     };
-  }, [user?.id, identityEpoch, identityRef, migrationUserId, migrationState, migrationLoading, refreshNonce]);
+    window.addEventListener('focus', refresh);
+    window.addEventListener('online', refresh);
+    window.addEventListener('storage', onStorage);
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', refresh);
+    const timer = setInterval(() => { if (modeRef.current === 'cloud') refresh(); }, 30000);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('online', refresh);
+      window.removeEventListener('storage', onStorage);
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [identityRef, refreshCloud, loadGuest, syncPendingWrites]);
 
-  const saveAndSetData = useCallback((newData) => {
-    if (isMalformed || identityRef.current.userId) return false;
+  const saveAndSetData = useCallback(newData => {
+    if (isMalformed || identityRef.current.userId || modeRef.current !== 'guest') return false;
+    if (dataRef.current !== data) { setCloudError('Guest data changed. Review the refreshed data and try again.'); return false; }
     try {
+      if (localStorage.getItem('gymlog_data') !== guestRawRef.current) {
+        loadGuest();
+        setCloudError('Guest data changed in another tab. Review the refreshed data and try again.');
+        return false;
+      }
       saveGymLogData(newData);
+      guestRawRef.current = localStorage.getItem('gymlog_data');
+      dataRef.current = newData;
       setData(newData);
       return true;
     } catch {
       setCloudError('Browser storage could not save this change. Free some storage and try again.');
       return false;
     }
-  }, [isMalformed, identityRef]);
+  }, [isMalformed, identityRef, loadGuest, data]);
 
-  // Serialize local writes; server transactions handle cross-device concurrency.
-  const performCloudMutation = useCallback(async mutationFn => {
-    const { userId: requestId, epoch } = identityRef.current;
-    if (!requestId || sourceMode !== 'cloud' || migrationUserId !== requestId || mutationRef.current) return false;
-    const operation = { requestId, epoch };
-    mutationRef.current = operation;
-    const isCurrent = () => identityRef.current.userId === requestId && identityRef.current.epoch === epoch && mutationRef.current === operation;
-    setCloudBusy(true);
-    setCloudError(null);
+  const performCloudMutation = useCallback(async (descriptor, retryOperation = null) => {
+    const { userId, epoch } = identityRef.current;
+    if (!userId || modeRef.current !== 'cloud' || readyRef.current?.userId !== userId || readyRef.current?.epoch !== epoch || mutationRef.current) return false;
+    const token = { userId, epoch };
+    mutationRef.current = token;
+    ++readSequenceRef.current; // Ignore reads begun before this write.
+    setRefreshing(false);
+    const isCurrent = () => identityRef.current.userId === userId && identityRef.current.epoch === epoch && mutationRef.current === token;
+    setCloudBusy(true); setCloudError(null);
+    let operation = retryOperation;
     try {
-      await mutationFn(requestId);
+      const pending = syncPendingWrites(userId);
+      if (!operation && pending.length) throw new Error('A previous change needs recovery. Retry that saved change before starting another.');
+      if (!operation) operation = await prepareCloudWrite(descriptor, userId, descriptor.expectedVersion ?? dataRef.current?._version, isCurrent);
       if (!isCurrent()) return false;
-      const newCloudData = await SupabaseService.fetchGymLogData(requestId);
+      setPendingWrite(operation);
+      await executeCloudWrite(operation, isCurrent);
       if (!isCurrent()) return false;
-      setData(newCloudData);
-      return true;
-    } catch (err) {
+      setCompletedWrite(operation);
+      try { acknowledgeCloudWrite(operation); setPendingWrite({ ...operation, phase: 'acknowledged' }); } catch { setCloudError('Change saved, but its recovery record could not be updated. Retry recovery when storage is available.'); }
+      // A confirmed receipt is success even if the following read is temporarily unavailable.
+      const refreshed = await fetchSnapshot();
       if (!isCurrent()) return false;
-      // Reconcile uncertain outcomes before exposing another write attempt.
-      try {
-        const latest = await SupabaseService.fetchGymLogData(requestId);
-        if (isCurrent()) setData(latest);
-      } catch {
-        if (isCurrent()) setCloudStatus('error');
+      if (refreshed) {
+        try { forgetCloudWrite(operation); syncPendingWrites(userId); } catch { setCloudError('Change saved, but its recovery record could not be cleared. Retry recovery.'); }
       }
-      if (isCurrent()) setCloudError(err.message || 'Sync failed. Refresh before trying again.');
+      return true;
+    } catch (e) {
+      if (!isCurrent()) return false;
+      if (operation && isDefinitiveRejection(e)) {
+        try { forgetCloudWrite(operation); } catch { /* Preserve and retry cleanup if storage is unavailable. */ }
+      }
+      try { syncPendingWrites(userId); } catch { /* Surface the original error; never send a new write. */ }
+      await fetchSnapshot(true);
+      if (isCurrent()) setCloudError(e.message || 'The outcome is uncertain. Retry the saved change safely.');
       return false;
     } finally {
-      if (isCurrent()) { mutationRef.current = null; setCloudBusy(false); }
+      if (isCurrent()) {
+        mutationRef.current = null;
+        setCloudBusy(false);
+        if (refreshQueuedRef.current) { refreshQueuedRef.current = false; refreshCloud(); }
+      }
     }
-  }, [sourceMode, identityRef, migrationUserId]);
+  }, [identityRef, syncPendingWrites, fetchSnapshot, refreshCloud]);
 
-  const performCloudRestore = useCallback(async migratedDataModel => {
-    const domainModel = prepareGymLogData(migratedDataModel['gymlog_data']);
-    const expectedVersion = data?._version;
-    const operationId = crypto.randomUUID();
-    return performCloudMutation(userId => SupabaseService.replaceGymLogData(domainModel, userId, expectedVersion, operationId));
-  }, [data, performCloudMutation]);
+  const retryPendingWrite = useCallback(() => {
+    try {
+      const operation = readPendingWrites(identityRef.current.userId)[0];
+      return operation ? performCloudMutation(null, operation) : refreshCloud();
+    } catch (e) { setCloudError(e.message); return Promise.resolve(false); }
+  }, [identityRef, performCloudMutation, refreshCloud]);
+
+  const performCloudRestore = useCallback(async (migratedDataModel, expectedVersion) => {
+    const payload = prepareGymLogData(migratedDataModel['gymlog_data']);
+    return performCloudMutation({ action: 'restore', payload, expectedVersion });
+  }, [performCloudMutation]);
 
   // Workout Days Operations
   const createDay = useCallback((name) => {
@@ -146,8 +246,7 @@ export function DataProvider({ children }) {
 
     if (sourceMode === 'cloud') {
       const newId = uid();
-      const newPosition = data.days.length;
-      return performCloudMutation(userId => SupabaseService.createDay(newId, name, today(), newPosition, userId));
+      return performCloudMutation({ action: 'create_day', payload: { id: newId, name, createdAt: today() } });
     } else {
       const newData = {
         ...data,
@@ -160,11 +259,11 @@ export function DataProvider({ children }) {
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
-  const renameDay = useCallback((id, newName) => {
+  const renameDay = useCallback((id, newName, expectedVersion) => {
     if (!newName || !data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      return performCloudMutation(userId => SupabaseService.renameDay(id, newName, userId));
+      return performCloudMutation({ action: 'rename_day', expectedVersion, payload: { id, name: newName } });
     } else {
       const newData = {
         ...data,
@@ -178,7 +277,7 @@ export function DataProvider({ children }) {
     if (!data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      return performCloudMutation(userId => SupabaseService.deleteDay(id, userId));
+      return performCloudMutation({ action: 'delete_day', payload: { id } });
     } else {
       const newData = {
         ...data,
@@ -193,10 +292,8 @@ export function DataProvider({ children }) {
     if (!name || !data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      const day = data.days.find(d => d.id === dayId);
-      const newPosition = day ? (day.exercises || []).length : 0;
       const newId = uid();
-      return performCloudMutation(userId => SupabaseService.addExercise(dayId, newId, name, newPosition, userId));
+      return performCloudMutation({ action: 'add_exercise', payload: { id: newId, dayId, name } });
     } else {
       const newData = {
         ...data,
@@ -217,11 +314,11 @@ export function DataProvider({ children }) {
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
-  const renameExercise = useCallback((dayId, exId, newName) => {
+  const renameExercise = useCallback((dayId, exId, newName, expectedVersion) => {
     if (!newName || !data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      return performCloudMutation(userId => SupabaseService.renameExercise(exId, newName, userId));
+      return performCloudMutation({ action: 'rename_exercise', expectedVersion, payload: { id: exId, name: newName } });
     } else {
       const newData = {
         ...data,
@@ -243,7 +340,7 @@ export function DataProvider({ children }) {
     if (!data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      return performCloudMutation(userId => SupabaseService.deleteExercise(exId, userId));
+      return performCloudMutation({ action: 'delete_exercise', payload: { id: exId } });
     } else {
       const newData = {
         ...data,
@@ -266,11 +363,8 @@ export function DataProvider({ children }) {
     if (!reps || reps < 1 || isNaN(weight) || weight < 0 || !data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      const day = data.days.find(d => d.id === dayId);
-      const ex = day ? (day.exercises || []).find(e => e.id === exId) : null;
-      const newNum = ex ? (ex.sets || []).length + 1 : 1;
       const newId = uid();
-      return performCloudMutation(userId => SupabaseService.addSet(exId, newId, newNum, reps, weight, userId));
+      return performCloudMutation({ action: 'add_set', payload: { id: newId, exerciseId: exId, reps, weight } });
     } else {
       const newData = {
         ...data,
@@ -296,11 +390,11 @@ export function DataProvider({ children }) {
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
-  const updateSet = useCallback((dayId, exId, setId, reps, weight) => {
+  const updateSet = useCallback((dayId, exId, setId, reps, weight, expectedVersion) => {
     if (!reps || isNaN(weight) || !data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      return performCloudMutation(userId => SupabaseService.updateSet(setId, reps, weight, userId));
+      return performCloudMutation({ action: 'update_set', expectedVersion, payload: { id: setId, reps, weight } });
     } else {
       const newData = {
         ...data,
@@ -328,7 +422,7 @@ export function DataProvider({ children }) {
     if (!data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      return performCloudMutation(userId => SupabaseService.deleteSet(setId, userId));
+      return performCloudMutation({ action: 'delete_set', payload: { id: setId } });
     } else {
       const newData = {
         ...data,
@@ -372,7 +466,7 @@ export function DataProvider({ children }) {
         weight: s.weight
       }));
 
-      return performCloudMutation(userId => SupabaseService.saveSession(exId, logDate, mappedSets, userId, data._generation));
+      return performCloudMutation({ action: 'save_session', payload: { exerciseId: exId, logDate, sets: mappedSets, datasetGeneration: data._generation } });
     } else {
       const day = data.days.find(d => d.id === dayId);
       if (!day) return;
@@ -423,8 +517,7 @@ export function DataProvider({ children }) {
 
     if (sourceMode === 'cloud') {
       const newId = uid();
-      const newPosition = data.measurements.length;
-      return performCloudMutation(userId => SupabaseService.createMeasurement(newId, name, today(), newPosition, userId));
+      return performCloudMutation({ action: 'create_measurement', payload: { id: newId, name, createdAt: today() } });
     } else {
       const newData = {
         ...data,
@@ -437,11 +530,11 @@ export function DataProvider({ children }) {
     }
   }, [data, saveAndSetData, sourceMode, performCloudMutation]);
 
-  const renameMeasurement = useCallback((id, newName) => {
+  const renameMeasurement = useCallback((id, newName, expectedVersion) => {
     if (!newName || !data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      return performCloudMutation(userId => SupabaseService.renameMeasurement(id, newName, userId));
+      return performCloudMutation({ action: 'rename_measurement', expectedVersion, payload: { id, name: newName } });
     } else {
       const newData = {
         ...data,
@@ -457,7 +550,7 @@ export function DataProvider({ children }) {
     if (!data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      return performCloudMutation(userId => SupabaseService.deleteMeasurement(id, userId));
+      return performCloudMutation({ action: 'delete_measurement', payload: { id } });
     } else {
       const newData = {
         ...data,
@@ -473,7 +566,7 @@ export function DataProvider({ children }) {
 
     if (sourceMode === 'cloud') {
       const newId = uid();
-      return performCloudMutation(userId => SupabaseService.addMeasurementEntry(measId, newId, value, unit, logDate, userId));
+      return performCloudMutation({ action: 'add_measurement_entry', payload: { id: newId, measurementId: measId, value, unit, logDate } });
     } else {
       const newEntry = { id: uid(), date: logDate, value, unit };
 
@@ -498,7 +591,7 @@ export function DataProvider({ children }) {
     if (!data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      return performCloudMutation(userId => SupabaseService.deleteMeasurementEntry(entryId, userId));
+      return performCloudMutation({ action: 'delete_measurement_entry', payload: { id: entryId } });
     } else {
       const newData = {
         ...data,
@@ -519,8 +612,7 @@ export function DataProvider({ children }) {
     if (!data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      const payload = newDays.map((d, index) => ({ id: d.id, position: index }));
-      return performCloudMutation(userId => SupabaseService.reorderDays(payload, userId));
+      return performCloudMutation({ action: 'reorder_days', expectedVersion: data._version, payload: { ids: newDays.map(d => d.id) } });
     } else {
       const newData = {
         ...data,
@@ -534,8 +626,7 @@ export function DataProvider({ children }) {
     if (!data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      const payload = newExercises.map((e, index) => ({ id: e.id, position: index }));
-      return performCloudMutation(userId => SupabaseService.reorderExercises(payload, userId));
+      return performCloudMutation({ action: 'reorder_exercises', expectedVersion: data._version, payload: { dayId, ids: newExercises.map(e => e.id) } });
     } else {
       const newData = {
         ...data,
@@ -557,8 +648,7 @@ export function DataProvider({ children }) {
     if (!data || sourceMode === 'loading' || sourceMode === 'migration') return;
 
     if (sourceMode === 'cloud') {
-      const payload = newMeasurements.map((m, index) => ({ id: m.id, position: index }));
-      return performCloudMutation(userId => SupabaseService.reorderMeasurements(payload, userId));
+      return performCloudMutation({ action: 'reorder_measurements', expectedVersion: data._version, payload: { ids: newMeasurements.map(m => m.id) } });
     } else {
       const newData = {
         ...data,
@@ -576,6 +666,10 @@ export function DataProvider({ children }) {
     sourceMode: sameIdentity ? sourceMode : 'loading',
     cloudStatus,
     cloudBusy,
+    refreshing,
+    pendingWrite,
+    completedWrite,
+    retryPendingWrite,
     retryCloud,
     cloudError,
     clearCloudError,

@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import { SettingsIcon } from '../components/ui/Icons';
 import { fmt } from '../utils/helpers';
+import useWriteCompletion from '../hooks/useWriteCompletion';
 import DateSelector from '../components/exercise/DateSelector';
 
 export default function MeasurementDetail() {
@@ -17,6 +18,8 @@ export default function MeasurementDetail() {
   const [dateOffset, setDateOffset] = useState(0);
   const [inValue, setInValue] = useState('');
   const [inUnit, setInUnit] = useState('cm');
+
+  useWriteCompletion('add_measurement_entry', p => { if (p.measurementId === measId && p.value === Number(inValue) && p.unit === inUnit) setInValue(''); });
 
   const handleAdj = (amt) => {
     let current = parseFloat(inValue);
@@ -34,22 +37,22 @@ export default function MeasurementDetail() {
     return null;
   }
 
-  const handleAddEntry = () => {
+  const handleAddEntry = async () => {
     const val = parseFloat(inValue);
     if (isNaN(val)) {
       alert('Enter valid value');
       return;
     }
-    addMeasurementEntry(measId, val, inUnit, dateOffset);
+    if (!await addMeasurementEntry(measId, val, inUnit, dateOffset)) return;
     setInValue('');
     const dateLbl = dateOffset === 0 ? 'Today' : dateOffset === 1 ? 'Yesterday' : '2 days ago';
     alert(`Entry logged for ${dateLbl}!`);
   };
 
-  const handleDeleteEntry = (entryId) => {
+  const handleDeleteEntry = async (entryId) => {
     const ok = window.confirm('Delete this entry?');
     if (!ok) return;
-    deleteMeasurementEntry(measId, entryId);
+    if (!await deleteMeasurementEntry(measId, entryId)) return;
     alert('Entry deleted');
   };
 

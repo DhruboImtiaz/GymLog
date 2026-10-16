@@ -27,7 +27,7 @@ before(async () => {
     GRANT USAGE ON SCHEMA public, auth TO authenticated, anon;
     INSERT INTO auth.users VALUES ('${A}'),('${B}');`);
   // Original files predate consistent CLI timestamps; replay their dependency order.
-  for (const name of ['20260924_initial_gymlog_schema.sql','20260924_correct_gymlog_privileges.sql','20260925_add_history_sets_unique_constraint.sql','20260925_replace_gymlog_data_rpc.sql','20260925223000_scope_entity_ids.sql','20260925224500_scope_history_sets.sql','20261016091534_p1_atomic_sync.sql']) {
+  for (const name of ['20260924_initial_gymlog_schema.sql','20260924_correct_gymlog_privileges.sql','20260925_add_history_sets_unique_constraint.sql','20260925_replace_gymlog_data_rpc.sql','20260925223000_scope_entity_ids.sql','20260925224500_scope_history_sets.sql','20261016091534_p1_atomic_sync.sql','20261016101518_p2_write_recovery.sql']) {
     await db.exec(await readFile(new URL('../supabase/migrations/' + name, import.meta.url), 'utf8'));
   }
   await db.exec(`CREATE FUNCTION public.inject_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
@@ -163,4 +163,67 @@ test('an uncommitted session from a replaced dataset is rejected even with ident
   await migrate(guest(),(await snapshot())._version,{id:'restore',replace:true});
   await assert.rejects(save(undefined,'never-committed',A,generation),/dataset was replaced/);
   assert.equal((await snapshot()).days[0].exercises[0].sets.length,1);
+});
+
+async function mutate(action, payload, {id=crypto.randomUUID(), version, user=A}={}) {
+  version ??= (await snapshot(user))._version;
+  return (await db.query('select public.mutate_gymlog_data($1,$2,$3,$4,$5::jsonb) as result',[user,id,version,action,JSON.stringify(payload)])).rows[0].result;
+}
+test('ordinary create retries return a receipt without duplicates or overwriting later edits', async()=>{
+  const version=(await snapshot())._version;
+  const payload={id:'new-day',name:'Push',createdAt:'2026-10-16'};
+  await mutate('create_day',payload,{version,id:'create-once'});
+  await db.exec("update public.workout_days set name='Other device' where id='new-day'");
+  assert.equal((await mutate('create_day',payload,{version,id:'create-once'})).replayed,true);
+  const current=await snapshot(); assert.equal(current.days.length,1); assert.equal(current.days[0].name,'Other device');
+});
+test('stale ordinary edits cannot overwrite a remote change', async()=>{
+  await seed(); const version=(await snapshot())._version;
+  await db.exec("update public.workout_days set name='Remote' where id='d'");
+  await assert.rejects(mutate('rename_day',{id:'d',name:'Stale draft'},{version}),/Cloud data changed/);
+  assert.equal((await snapshot()).days[0].name,'Remote');
+});
+test('atomic ordering rejects incomplete, duplicate and foreign IDs', async()=>{
+  await seed(); await mutate('create_day',{id:'d2',name:'Second',createdAt:'2026-10-16'});
+  const original=await snapshot();
+  for(const ids of [['d'],['d','d'],['d','foreign']]){
+    await assert.rejects(mutate('reorder_days',{ids}),/ordering IDs|List changed/);
+    assert.deepEqual(await snapshot(),original);
+  }
+  await mutate('reorder_days',{ids:['d2','d']});
+  assert.deepEqual((await snapshot()).days.map(d=>d.id),['d2','d']);
+});
+test('ordering failure rolls back all position changes and its receipt',async()=>{
+  await seed(); await mutate('create_day',{id:'d2',name:'Second',createdAt:'2026-10-16'});
+  await db.exec(`RESET ROLE; CREATE FUNCTION public.fail_order() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+    IF NEW.id='d2' AND NEW.position<>OLD.position THEN RAISE EXCEPTION 'ordering interrupted'; END IF; RETURN NEW; END; $$;
+    CREATE TRIGGER fail_order BEFORE UPDATE ON public.workout_days FOR EACH ROW EXECUTE FUNCTION public.fail_order(); SET ROLE authenticated;`);
+  const original=await snapshot();
+  try {
+    await assert.rejects(mutate('reorder_days',{ids:['d2','d']},{id:'order'}),/ordering interrupted/);
+    assert.deepEqual(await snapshot(),original);
+    assert.equal((await db.query("select count(*)::int as n from public.gymlog_sync_operations where operation_id='order'")).rows[0].n,0);
+  } finally { await db.exec('RESET ROLE; DROP TRIGGER fail_order ON public.workout_days; DROP FUNCTION public.fail_order(); SET ROLE authenticated;'); }
+});
+test('missing rows and changed operation payloads do not report successful edits',async()=>{
+  await seed();
+  await assert.rejects(mutate('rename_day',{id:'missing',name:'Nope'}),/item changed or was deleted/);
+  const version=(await snapshot())._version; await mutate('rename_day',{id:'d',name:'First'},{version,id:'same-id'});
+  await assert.rejects(mutate('rename_day',{id:'d',name:'Second'},{version,id:'same-id'}),/Operation ID already used/);
+  assert.equal((await snapshot()).days[0].name,'First');
+});
+test('ordinary writes respect account identity, RLS and anonymous grants',async()=>{
+  await seed(); await identity(B);
+  await assert.rejects(mutate('rename_day',{id:'d',name:'Wrong'},{user:A,version:'old'}),/Account changed/);
+  await assert.rejects(mutate('rename_day',{id:'d',name:'Wrong'},{user:B}),/item changed or was deleted/);
+  await db.exec('RESET ROLE; SET ROLE anon;');
+  await assert.rejects(db.query('select public.mutate_gymlog_data($1,$2,$3,$4,$5::jsonb)',[A,'write','old','create_day','{}']),/permission denied/);
+});
+test('large nested snapshots retain all entries with deterministic equal-date ordering',async()=>{
+  await seed();
+  await db.exec(`insert into public.measurement_entries(id,measurement_id,user_id,log_date,value,unit)
+    select 'bulk-'||lpad(n::text,4,'0'),'m','${A}','2026-10-16',n,'kg' from generate_series(1,1200) n;`);
+  const entries=(await snapshot()).measurements[0].entries;
+  assert.equal(entries.length,1201);
+  assert.equal(entries[0].id,'bulk-0001'); assert.equal(entries[1199].id,'bulk-1200');
 });

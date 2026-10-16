@@ -75,7 +75,7 @@ GymLog is an offline-first Progressive Web App (PWA) for tracking gym workouts a
 To run GymLog locally with cloud functionality, you need a Supabase project.
 
 1. Create a [Supabase](https://supabase.com) project.
-2. Apply the SQL migrations to create the tables and transaction RPCs. Existing projects must apply `supabase/migrations/20261016091534_p1_atomic_sync.sql` before deploying this frontend. See [sync rollout and verification](docs/sync-safety.md) for historical migration ordering and deployment checks.
+2. Apply the SQL migrations to create the tables and transaction RPCs. Existing projects must apply `supabase/migrations/20261016091534_p1_atomic_sync.sql` and `supabase/migrations/20261016101518_p2_write_recovery.sql` before deploying this frontend. See [sync rollout and verification](docs/sync-safety.md) for historical migration ordering and deployment checks.
 
 ### Installation
 ```bash
@@ -123,7 +123,7 @@ The app is deployed on **Netlify**. Push to a connected GitHub repo and Netlify 
 GymLog implements a secure hybrid approach:
 
 - **Guest Mode:** All data is stored in the browser's `localStorage`. Clearing browser storage or uninstalling the PWA will erase all local data.
-- **Cloud Mode:** All authenticated data is persisted strictly in the cloud via Supabase PostgreSQL, utilizing Row Level Security (RLS) to ensure absolute data privacy. The UI updates after confirmed writes and a fresh cloud snapshot. Uploads, replacements, session saves, and active-set deletion use database transactions. Replacement rejects a cloud snapshot that changed since the preview; session saves reject edited or deleted source sets and preserve newly added sets.
+- **Cloud Mode:** All authenticated data is persisted strictly in the cloud via Supabase PostgreSQL, utilizing Row Level Security (RLS) to ensure absolute data privacy. The UI updates after confirmed writes and a fresh cloud snapshot. Uploads, replacements, session saves, ordinary edits, and reordering use database transactions with replay receipts. Open devices refresh on focus/reconnect and every 30 seconds while visible. Failed refreshes retain the last loaded data and open forms; uncertain writes can be retried safely after reload. Replacement rejects a cloud snapshot that changed since the preview; session saves reject edited or deleted source sets and preserve newly added sets.
 
 ---
 

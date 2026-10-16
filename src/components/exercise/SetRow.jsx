@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
+import { useGymLogData } from '../../context/DataContext';
+import useWriteCompletion from '../../hooks/useWriteCompletion';
 
 export default function SetRow({ setItem, onUpdate, onDelete }) {
+  const { data } = useGymLogData();
+  const [editVersion, setEditVersion] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editReps, setEditReps] = useState(setItem.reps);
   const [editWeight, setEditWeight] = useState(setItem.weight);
 
-  const handleSave = () => {
+  useWriteCompletion('update_set', p => { if (p.id === setItem.id && p.reps === Number(editReps) && p.weight === Number(editWeight)) setIsEditing(false); });
+
+  const handleSave = async () => {
     const r = parseFloat(editReps);
     const w = parseFloat(editWeight);
     if (!r || isNaN(w)) {
       alert('Invalid values'); // Replicating basic validation feedback if they somehow bypass input clamping
       return;
     }
-    onUpdate(setItem.id, r, w);
+    if (!await onUpdate(setItem.id, r, w, editVersion)) return;
     setIsEditing(false);
   };
 
@@ -34,7 +40,7 @@ export default function SetRow({ setItem, onUpdate, onDelete }) {
             <span className="set-weight">{setItem.weight} kg</span>
           </div>
           <div className="set-act" style={{ display: 'flex' }}>
-            <button className="icon-btn edit" onClick={() => setIsEditing(true)}>Edit</button>
+            <button className="icon-btn edit" onClick={() => { setEditReps(setItem.reps); setEditWeight(setItem.weight); setEditVersion(data?._version); setIsEditing(true); }}>Edit</button>
             <button className="icon-btn del" onClick={() => onDelete(setItem.id)}>Del</button>
           </div>
         </>

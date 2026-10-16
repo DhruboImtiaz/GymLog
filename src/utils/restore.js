@@ -62,72 +62,24 @@ export function executeRestore(backup) {
     throw new Error('Failed to restore backup.');
   }
 
-  const rollback = {};
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (['gymlog_data', 'gymlog_theme', 'gymlog_font_size'].includes(key)) {
-      rollback[key] = localStorage.getItem(key);
-    }
-  }
+  deepValidateBackup(migratedDataModel['gymlog_data']);
 
+  // One localStorage value contains the complete workout dataset. setItem is
+  // atomic: a quota/security failure leaves the previous value intact.
   try {
-    // Wipe current gymlog keys
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (['gymlog_data', 'gymlog_theme', 'gymlog_font_size'].includes(key)) {
-        localStorage.removeItem(key);
-      }
-    }
-
-    // Insert new data
-    for (const [key, value] of Object.entries(migratedDataModel)) {
-      if (typeof value === 'object') {
-        localStorage.setItem(key, JSON.stringify(value));
-      } else {
-        localStorage.setItem(key, String(value));
-      }
-    }
-
-    // Verify
-    let verified = false;
-    try {
-      const dbStr = localStorage.getItem('gymlog_data');
-      if (!dbStr) {
-        verified = true;
-      } else {
-        const db = JSON.parse(dbStr);
-        if (Array.isArray(db.days) && Array.isArray(db.measurements)) {
-          verified = true;
-        }
-      }
-    } catch(e) {}
-
-    if (!verified) {
-      throw new Error('Backup verification failed.');
-    }
-
-    localStorage.setItem('gymlog_restore_success', 'true');
-    window.location.reload();
-
-  } catch (e) {
-    console.error(e);
-    // Rollback
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (['gymlog_data', 'gymlog_theme', 'gymlog_font_size'].includes(key)) {
-        localStorage.removeItem(key);
-      }
-    }
-    for (const [key, value] of Object.entries(rollback)) {
-      localStorage.setItem(key, value);
-    }
-
-    if (e.message === 'Backup verification failed.') {
-      throw new Error('Backup verification failed. Previous data has been restored.');
-    } else {
-      throw new Error('Failed to restore backup. Previous data has been restored.');
-    }
+    localStorage.setItem('gymlog_data', JSON.stringify(migratedDataModel['gymlog_data']));
+  } catch {
+    throw new Error('Failed to restore workout data. Your existing data is unchanged.');
   }
+  try {
+    for (const key of ['gymlog_theme', 'gymlog_font_size']) {
+      if (migratedDataModel[key] !== undefined) localStorage.setItem(key, String(migratedDataModel[key]));
+    }
+    localStorage.setItem('gymlog_restore_success', 'true');
+  } catch {
+    throw new Error('Workout data was restored, but browser storage could not finish saving settings. Reload to view the restored data.');
+  }
+  window.location.reload();
 }
 
 export function deepValidateBackup(data) {
