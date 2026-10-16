@@ -7,7 +7,7 @@ import { createServer } from 'node:net';
 export const A = '11111111-1111-4111-8111-111111111111';
 export const B = '22222222-2222-4222-8222-222222222222';
 export const guest = () => ({ days: [{ id: 'd', name: 'Push', createdAt: '2026-10-16', exercises: [{ id: 'e', name: 'Bench', sets: [{ id: 's', num: 1, reps: 5, weight: 50 }], history: [] }] }], measurements: [{ id: 'm', name: 'Weight', createdAt: '2026-10-16', entries: [{ id: 'en', date: '2026-10-16', value: 70, unit: 'kg' }] }] });
-export const migrations = ['20260924_initial_gymlog_schema.sql','20260924_correct_gymlog_privileges.sql','20260925_add_history_sets_unique_constraint.sql','20260925_replace_gymlog_data_rpc.sql','20260925223000_scope_entity_ids.sql','20260925224500_scope_history_sets.sql','20261016091534_p1_atomic_sync.sql','20261016101518_p2_write_recovery.sql'];
+export const migrations = ['20260924_initial_gymlog_schema.sql','20260924_correct_gymlog_privileges.sql','20260925_add_history_sets_unique_constraint.sql','20260925_replace_gymlog_data_rpc.sql','20260925223000_scope_entity_ids.sql','20260925224500_scope_history_sets.sql','20261016091534_p1_atomic_sync.sql','20261016101518_p2_write_recovery.sql','20261016125242_explicit_sync_conflicts.sql'];
 
 export async function nativePostgres() {
   const dir = await mkdtemp(join(tmpdir(), 'gymlog-pg-'));

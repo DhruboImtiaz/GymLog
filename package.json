@@ -12,7 +12,8 @@
     "test:ui": "vitest run",
     "test:native": "GYMLOG_NATIVE_TEST=1 node --test tests/database.test.js tests/concurrency.test.js",
     "test:browser": "node --test tests/browser.test.js",
-    "test:required": "npm test && npm run test:native && npm run test:browser && npm run build"
+    "test:required": "npm test && npm run test:native && npm run test:browser && npm run build",
+    "test:live": "node --test --test-concurrency=1 tests/live.test.js tests/live-browser.test.js"
   },
   "repository": {
     "type": "git",

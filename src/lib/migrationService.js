@@ -50,7 +50,7 @@ export const MigrationService = {
       await SupabaseService.applyMigration(operation, userId);
     } catch (error) {
       // These rejections are definitive: the transaction wrote nothing.
-      if (isCurrent() && ['40001', '22023', '23505', '23514'].includes(error.code)) removeOwnPending();
+      if (isCurrent() && ['PT409', '40001', '22023', '23505', '23514'].includes(error.code)) removeOwnPending();
       throw error;
     }
     assertCurrentAccount(userId, isCurrent);

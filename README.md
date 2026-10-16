@@ -75,7 +75,7 @@ GymLog is an offline-first Progressive Web App (PWA) for tracking gym workouts a
 To run GymLog locally with cloud functionality, you need a Supabase project.
 
 1. Create a [Supabase](https://supabase.com) project.
-2. Apply the SQL migrations to create the tables and transaction RPCs. Existing projects must apply `supabase/migrations/20261016091534_p1_atomic_sync.sql` and `supabase/migrations/20261016101518_p2_write_recovery.sql` before deploying this frontend. See [sync rollout and verification](docs/sync-safety.md) for historical migration ordering and deployment checks.
+2. Apply the SQL migrations to create the tables and transaction RPCs. Existing projects must apply `supabase/migrations/20261016091534_p1_atomic_sync.sql`, `supabase/migrations/20261016101518_p2_write_recovery.sql`, and `supabase/migrations/20261016125242_explicit_sync_conflicts.sql` before deploying this frontend. The final migration returns explicit HTTP conflicts and prevents managed PostgREST from retrying stale writes indefinitely. See [sync rollout and verification](docs/sync-safety.md) for historical migration ordering and deployment checks.
 
 ### Installation
 ```bash

@@ -23,6 +23,7 @@ import { DataProvider, useGymLogData } from '../src/context/DataContext';
 import { MigrationService } from '../src/lib/migrationService';
 import { SupabaseService } from '../src/lib/repository';
 import { fingerprint, prepareGymLogData, readMigrationState } from '../src/lib/syncOperations';
+import { isDefinitiveRejection } from '../src/lib/cloudWriteJournal';
 
 const guest = name => ({ days: [{ id: 'd', name: name || 'Push', createdAt: '2026-10-16', exercises: [{ id: 'e', name: 'Bench', sets: [{ id: 's', num: 1, reps: 5, weight: 50 }], history: [] }] }], measurements: [] });
 let latest, renderer;
@@ -46,7 +47,7 @@ beforeEach(() => {
     if (name==='apply_gymlog_migration') { mock.cloud={...structuredClone(args.payload),_version:'v1',_generation:'1'}; return {data:{success:true},error:null}; }
     if (name==='mutate_gymlog_data') {
       if(mock.receipts.has(args.operation_id)) return {data:{success:true,replayed:true},error:null};
-      if(args.expected_version!==mock.cloud._version) return {error:{message:'Cloud data changed. Reopen the editor.',code:'40001'}};
+      if(args.expected_version!==mock.cloud._version) return {error:{message:'Cloud data changed. Reopen the editor.',code:'PT409'}};
       const p=args.payload;
       if(args.action==='create_day') mock.cloud.days.push({id:p.id,name:p.name,createdAt:p.createdAt,exercises:[]});
       if(args.action==='rename_day') mock.cloud.days.find(d=>d.id===p.id).name=p.name;
@@ -213,11 +214,23 @@ test('a failed cloud session reports failure and reconciles before retry is enab
   mock.cloud={...guest(),_version:'v1',_generation:'1'};
   await mount(); await settle(() => latest.data.sourceMode==='cloud' && latest.data.data);
   const defaultRPC=mock.rpc.getMockImplementation();
-  mock.rpc.mockImplementation((name,args)=>name==='save_gymlog_session'?Promise.resolve({error:{message:'Workout changed',code:'40001'}}):defaultRPC(name,args));
+  mock.rpc.mockImplementation((name,args)=>name==='save_gymlog_session'?Promise.resolve({error:{message:'Workout changed',code:'PT409'}}):defaultRPC(name,args));
   await act(async () => { expect(await latest.data.saveSession('d','e',0)).toBe(false); });
   expect(latest.data.cloudError).toBe('Workout changed');
   expect(latest.data.cloudBusy).toBe(false);
   expect(latest.data.data.days[0].exercises[0].sets).toHaveLength(1);
+});
+
+test('HTTP conflict is definitive while uncertain transport failures retain recovery',()=>{
+  for(const code of ['PT409','40001','22023','23505','42501'])expect(isDefinitiveRejection({code})).toBe(true);
+  for(const code of ['',undefined,'PGRST000'])expect(isDefinitiveRejection({code})).toBe(false);
+});
+test('HTTP conflict clears the rejected migration journal and preserves guest data',async()=>{
+  const local=guest();localStorage.setItem('gymlog_data',JSON.stringify(local));
+  mock.rpc.mockResolvedValue({error:{message:'Cloud data changed',code:'PT409'}});
+  await expect(MigrationService.runMigration({localData:local,userId:'A',expectedVersion:'v0',isCurrent:()=>true})).rejects.toMatchObject({code:'PT409'});
+  expect(localStorage.getItem('gymlog_pending_migration_A')).toBe(null);
+  expect(localStorage.getItem('gymlog_data')).toBe(JSON.stringify(local));
 });
 
 test('null or wrong-shaped guest subtrees are rejected before network writes', async () => {

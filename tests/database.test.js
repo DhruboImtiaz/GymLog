@@ -32,7 +32,7 @@ before(async () => {
     GRANT USAGE ON SCHEMA public, auth TO authenticated, anon;
     INSERT INTO auth.users VALUES ('${A}'),('${B}');`);
   // Original files predate consistent CLI timestamps; replay their dependency order.
-  for (const name of ['20260924_initial_gymlog_schema.sql','20260924_correct_gymlog_privileges.sql','20260925_add_history_sets_unique_constraint.sql','20260925_replace_gymlog_data_rpc.sql','20260925223000_scope_entity_ids.sql','20260925224500_scope_history_sets.sql','20261016091534_p1_atomic_sync.sql','20261016101518_p2_write_recovery.sql']) {
+  for (const name of ['20260924_initial_gymlog_schema.sql','20260924_correct_gymlog_privileges.sql','20260925_add_history_sets_unique_constraint.sql','20260925_replace_gymlog_data_rpc.sql','20260925223000_scope_entity_ids.sql','20260925224500_scope_history_sets.sql','20261016091534_p1_atomic_sync.sql','20261016101518_p2_write_recovery.sql','20261016125242_explicit_sync_conflicts.sql']) {
     await db.exec(await readFile(new URL('../supabase/migrations/' + name, import.meta.url), 'utf8'));
   }
   await db.exec(`CREATE FUNCTION public.inject_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
@@ -293,4 +293,13 @@ test('all relationship foreign keys include ownership and reject cross-account p
   await seed();await identity(B);
   await assert.rejects(mutate('add_exercise',{id:'foreign',dayId:'d',name:'Cross-account'},{user:B}),/foreign key/);
   assert.equal((await snapshot(B)).days.length,0);
+});
+
+test('all domain conflicts use non-retryable PT409 and preserve invoker grants',async()=>{
+  const rows=(await db.query("select proname,prosecdef,pg_get_functiondef(oid) as definition,has_function_privilege('authenticated',oid,'execute') as allowed,has_function_privilege('anon',oid,'execute') as anonymous from pg_proc where pronamespace='public'::regnamespace and proname in ('apply_gymlog_migration','save_gymlog_session','mutate_gymlog_data')")).rows;
+  assert.equal(rows.length,3);
+  for(const row of rows){assert.ok(!row.definition.includes("'40001'"));assert.ok(row.definition.includes("'PT409'"));assert.equal(row.prosecdef,false);assert.equal(row.allowed,true);assert.equal(row.anonymous,false);}
+  await seed();await assert.rejects(mutate('rename_day',{id:'d',name:'Stale'},{version:'old'}),{code:'PT409'});
+  await assert.rejects(migrate(guest(),'old',{id:'stale-migration',replace:true}),{code:'PT409'});
+  await db.exec("update public.active_sets set weight=99 where id='s'");await assert.rejects(save(),{code:'PT409'});
 });

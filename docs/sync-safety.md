@@ -3,7 +3,7 @@
 ## Required rollout order
 
 1. Back up the database and verify all six existing migrations are applied, including user-scoped entity IDs and history-set uniqueness.
-2. Apply `supabase/migrations/20261016091534_p1_atomic_sync.sql`, then `supabase/migrations/20261016101518_p2_write_recovery.sql`, to a staging Supabase project, then run the staging checks below. These migrations do not delete or rewrite existing workout data.
+2. Apply `supabase/migrations/20261016091534_p1_atomic_sync.sql`, then `supabase/migrations/20261016101518_p2_write_recovery.sql`, then `supabase/migrations/20261016125242_explicit_sync_conflicts.sql`, to a staging Supabase project, then run the staging checks below. These migrations do not delete or rewrite existing workout data. The third migration is required: application conflicts use `PT409`/HTTP 409 instead of serialization failure, which [managed PostgREST can retry indefinitely](https://supabase.com/docs/guides/troubleshooting/high-cpu-and-infinite-transaction-retries-when-using-custom-error-codes-in-rpc-functions-77326b).
 3. Apply the same migrations to production, then deploy this frontend together with `public/sw.js`. The unguarded legacy `replace_gymlog_data` endpoint is deliberately revoked: old clients must reload to use guarded replacement. Existing REST CRUD still works, but all devices must reload to use atomic session saves, guarded ordinary edits, and atomic reordering.
 4. Verify the new worker activates, removes the old `gymlog-cache-v1` cache, and serves no Auth, REST or RPC request from Cache Storage. Reload open app/PWA windows after deployment.
 
@@ -17,6 +17,7 @@ The historical migration names have duplicate date-only versions and are not a c
 6. `20260925224500_scope_history_sets.sql`
 7. `20261016091534_p1_atomic_sync.sql`
 8. `20261016101518_p2_write_recovery.sql`
+9. `20261016125242_explicit_sync_conflicts.sql`
 
 ## Behavior
 
@@ -53,6 +54,10 @@ For the extended local checks, install the test browsers with `npx playwright in
 - Browser checks cover migration and ordinary-write recovery, concurrent profiles, stale edits and restores, delayed responses, account transitions, token refresh, cross-tab logout, polling, storage quota, remote deletion, and worker cache behavior. Hidden-document polling is tested using a simulated visibility property; quota failure is injected. Worker offline startup is tested by refusing origin connections, with a fresh no-worker context as a negative control. This avoids Playwright's [WebKit offline-emulation defect](https://github.com/microsoft/playwright/issues/42775).
 
 The extended commands are local verification. Live Supabase checks and installed PWA/device checks remain separate rollout requirements.
+
+`test:live` is an explicit opt-in suite for managed Supabase Auth, PostgREST and the production frontend. Set `GYMLOG_LIVE_CONFIG` to an absolute path outside the checkout containing `{ "url": "https://PROJECT.supabase.co", "key": "PUBLISHABLE_KEY", "accounts": [{ "id": "DISPOSABLE_USER_A_UUID", "email": "gymlog-verification-a@example.test", "password": "PRIVATE_PASSWORD" }, { "id": "DISPOSABLE_USER_B_UUID", "email": "gymlog-verification-b@example.test", "password": "PRIVATE_PASSWORD" }] }`. Provision confirmed disposable accounts first. The suite replaces only these accounts' data and checks the email prefix before running. Never use real user accounts, commit this configuration, or provide a server secret key. Run live files sequentially because they share the disposable accounts. Sign out and remove the accounts after verification.
+
+The live browser suite serves a local production build configured with the real project URL. Auth and RPCs go directly to managed Supabase. It injects selected lost responses and delayed deliveries after real server commits; it does not substitute SQL or Auth responses. Physical installed-PWA checks and deployed frontend headers remain separate.
 
 ## Staging checks before rollout
 

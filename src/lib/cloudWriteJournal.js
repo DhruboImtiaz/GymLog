@@ -50,5 +50,5 @@ export async function executeCloudWrite(operation, isCurrent) {
 
 export function isDefinitiveRejection(error) {
   // Network/transport failures have no SQLSTATE. Never discard their retry identity.
-  return typeof error.code === 'string' && /^(22|23|40|42)[A-Z0-9]{3}$/.test(error.code);
+  return error.code === 'PT409' || (typeof error.code === 'string' && /^(22|23|40|42)[A-Z0-9]{3}$/.test(error.code));
 }
