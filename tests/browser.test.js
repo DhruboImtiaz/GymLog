@@ -270,6 +270,12 @@ for(const name of ['chromium','firefox','webkit'])for(const failedDownload of [f
     await page.waitForFunction(()=>navigator.serviceWorker.controller);
     await page.getByText('Push',{exact:true}).waitFor();
     const before=await page.evaluate(()=>localStorage.getItem('gymlog_data'));
+    // The legacy worker itself has an async response-cloning bug. Establish a
+    // working old offline cache before testing whether a failed upgrade retains it.
+    await page.evaluate(async()=>{
+      const assets=[...document.querySelectorAll('script[src],link[href]')].map(el=>el.src||el.href).filter(url=>url.startsWith(location.origin+'/assets/'));
+      await(await caches.open('gymlog-cache-v1')).addAll(assets);
+    });
     server.controls.legacyWorker=false;server.controls.missingBundle=failedDownload;
     await page.evaluate(async failedDownload=>{
       const registration=await navigator.serviceWorker.getRegistration();
