@@ -24,7 +24,7 @@ export function session(id=A, expires=3600) {
 export async function browserServer() {
   const cluster=await nativePostgres(); await initialize(cluster.db);
   const requests=[];
-  const controls={dropNext:null,failReads:false,holdNext:null,holds:[],originOffline:false};
+  const controls={dropNext:null,failReads:false,holdNext:null,holds:[],originOffline:false,legacyWorker:false,missingBundle:false};
   const api=createServer(async(req,res)=>{
     res.setHeader('Access-Control-Allow-Origin','*');
     res.setHeader('Access-Control-Allow-Headers',req.headers['access-control-request-headers']||'authorization,apikey,content-type,x-client-info,x-supabase-api-version');
@@ -68,6 +68,8 @@ export async function browserServer() {
   const staticServer=createServer(async(req,res)=>{
     if(controls.originOffline){req.socket.destroy();return;}
     const path=new URL(req.url,'http://localhost').pathname;
+    if(path==='/sw.js'&&controls.legacyWorker){res.setHeader('Content-Type','text/javascript');res.setHeader('Cache-Control','no-store');return res.end(await readFile(new URL('../fixtures/legacy-worker.js',import.meta.url)));}
+    if(path.startsWith('/assets/')&&controls.missingBundle){res.writeHead(503);return res.end();}
     if(path==='/test-blank.html'){res.setHeader('Content-Type','text/html');return res.end('<!doctype html><title>Test setup</title>');}
     if(path.startsWith('/rest/')||path.startsWith('/auth/')){res.setHeader('Content-Type','application/json');return res.end('{"network":true}');}
     const asset=resolve(outDir,'.'+decodeURIComponent(path));
@@ -79,7 +81,7 @@ export async function browserServer() {
   const appUrl=await listen(staticServer);
   return {cluster,apiUrl,appUrl,requests,controls,session,
     storageKey:'sb-127-auth-token',
-    async reset(){requests.length=0;controls.dropNext=null;controls.failReads=false;controls.holdNext=null;controls.originOffline=false;controls.holds.splice(0).forEach(resolve=>resolve());await cluster.db.query('TRUNCATE public.workout_days,public.measurements,public.gymlog_sync_operations CASCADE');},
+    async reset(){requests.length=0;controls.dropNext=null;controls.failReads=false;controls.holdNext=null;controls.originOffline=false;controls.legacyWorker=false;controls.missingBundle=false;controls.holds.splice(0).forEach(resolve=>resolve());await cluster.db.query('TRUNCATE public.workout_days,public.measurements,public.gymlog_sync_operations CASCADE');},
     async close(){controls.holds.splice(0).forEach(resolve=>resolve());await close(staticServer);await close(api);await cluster.close();await rm(outDir,{recursive:true,force:true});}
   };
 }
