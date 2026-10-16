@@ -1,10 +1,25 @@
-const CACHE_NAME = 'gymlog-static-v2';
+const CACHE_NAME = 'gymlog-static-v3';
 const ASSETS_TO_CACHE = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE)));
-  // Remove private API responses left by the old worker as soon as this update activates.
-  self.skipWaiting();
+  event.waitUntil((async () => {
+    // The old worker may serve the first page's assets while this worker installs.
+    // Cache the new shell and its hashed bundles before removing the old cache.
+    const response = await fetch('/index.html', { cache: 'no-store' });
+    if (!response.ok) throw new Error('App shell could not be cached');
+    const html = await response.clone().text();
+    const bundles = [...html.matchAll(/(?:src|href)=["']([^"']+)["']/g)]
+      .map(match => new URL(match[1], self.location.origin))
+      .filter(url => url.origin === self.location.origin && /^\/assets\/.+\.(js|css)$/.test(url.pathname))
+      .map(url => url.href);
+    if (!bundles.some(url => new URL(url).pathname.endsWith('.js'))) throw new Error('App bundle missing from shell');
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll([...ASSETS_TO_CACHE.filter(path => path !== '/' && path !== '/index.html'), ...new Set(bundles)]);
+    await cache.put('/index.html', response.clone());
+    await cache.put('/', response);
+    // An incomplete download leaves the existing worker and its cache active.
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', event => {

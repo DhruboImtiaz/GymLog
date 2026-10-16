@@ -8,7 +8,7 @@ import {build} from 'vite';
 export async function liveAppServer(config){
   if(process.env.GYMLOG_DEPLOYED_URL){
     const url=new URL(process.env.GYMLOG_DEPLOYED_URL);
-    if(url.protocol!=='https:'||!['gymlog7.netlify.app','deploy-preview-1--gymlog7.netlify.app'].includes(url.hostname)||url.pathname!=='/'||url.search||url.hash||url.username||url.password)throw new Error('Use the reviewed GymLog production or release-preview origin.');
+    if(url.protocol!=='https:'||!(url.hostname==='gymlog7.netlify.app'||/^deploy-preview-\d+--gymlog7\.netlify\.app$/.test(url.hostname))||url.pathname!=='/'||url.search||url.hash||url.username||url.password)throw new Error('Use the GymLog production or project-preview origin.');
     return {url:url.origin,async close(){}};
   }
   const dir=await mkdtemp(join(tmpdir(),'gymlog-live-frontend-'));

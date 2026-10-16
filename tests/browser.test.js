@@ -261,3 +261,40 @@ for(const name of ['chromium','firefox','webkit'])test(`${name}: service worker 
   server.controls.originOffline=false;await page.reload();await page.locator('.card-title').filter({hasText:'Offline guest'}).waitFor();
   await context.close();
 });
+
+for(const name of ['chromium','firefox','webkit'])for(const failedDownload of [false,true])test(`${name}: ${failedDownload?'failed':'complete'} worker upgrade preserves guest UI on its first offline reload`,async()=>{
+  await server.reset();server.controls.legacyWorker=true;
+  const {page,context}=await profile(name,{userId:null,local:guest()});
+  try{
+    await page.evaluate(()=>navigator.serviceWorker.ready);await page.reload();
+    await page.waitForFunction(()=>navigator.serviceWorker.controller);
+    await page.getByText('Push',{exact:true}).waitFor();
+    const before=await page.evaluate(()=>localStorage.getItem('gymlog_data'));
+    // The legacy worker itself has an async response-cloning bug. Establish a
+    // working old offline cache before testing whether a failed upgrade retains it.
+    await page.evaluate(async()=>{
+      const assets=[...document.querySelectorAll('script[src],link[href]')].map(el=>el.src||el.href).filter(url=>url.startsWith(location.origin+'/assets/'));
+      await(await caches.open('gymlog-cache-v1')).addAll(assets);
+    });
+    server.controls.legacyWorker=false;server.controls.missingBundle=failedDownload;
+    await page.evaluate(async failedDownload=>{
+      const registration=await navigator.serviceWorker.getRegistration();
+      const outcome=new Promise((resolve,reject)=>{
+        const timer=setTimeout(()=>reject(new Error('Worker upgrade timed out')),15000);
+        registration.addEventListener('updatefound',()=>{
+          const installing=registration.installing;
+          installing.addEventListener('statechange',()=>{
+            if(installing.state===(failedDownload?'redundant':'activated')){clearTimeout(timer);resolve();}
+          });
+        },{once:true});
+      });
+      await registration.update();await outcome;
+    },failedDownload);
+    // No online reload after activation: the new worker must already have its bundles.
+    server.controls.originOffline=true;await page.reload();await page.getByText('Push',{exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>localStorage.getItem('gymlog_data')),before);
+    const names=await page.evaluate(()=>caches.keys());
+    assert.equal(names.includes('gymlog-cache-v1'),failedDownload);
+    if(!failedDownload)assert.ok(names.includes('gymlog-static-v3'));
+  }finally{server.controls.originOffline=false;server.controls.missingBundle=false;server.controls.legacyWorker=false;await context.close();}
+});
