@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
@@ -14,16 +14,10 @@ export default function ExerciseProgress() {
   const { theme, toggleTheme } = useTheme();
   const { setIsSettingsOpen } = useSettings();
 
-  if (!data) return null;
-  const day = data.days.find(d => d.id === dayId);
+  const day = data?.days.find(d => d.id === dayId);
   const exercise = day?.exercises?.find(e => e.id === exerciseId);
 
-  if (!day || !exercise) {
-    navigate('/', { replace: true });
-    return null;
-  }
-
-  const hist = exercise.history || [];
+  const hist = exercise?.history || [];
 
   // Build year options from all history
   const years = [...new Set(hist.map(h => new Date(h.date).getFullYear()))].sort((a, b) => a - b);
@@ -36,6 +30,9 @@ export default function ExerciseProgress() {
 
   const [progMonth, setProgMonth] = useState(now.getMonth());
   const [progYear, setProgYear] = useState(initialYear);
+
+  if (!data) return null;
+  if (!day || !exercise) return <Navigate to="/" replace />;
 
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 

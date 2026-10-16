@@ -46,7 +46,13 @@ Run `npm ci`, `npm test`, and `npm run build` with Node 24 or newer.
 
 `test:db` executes the real migrations and RPCs in PGlite/PostgreSQL, using separate authenticated/anonymous roles and two users. It covers late-write rollback, lost-response replay, stale replacement, malformed payloads, session deduplication, interleaved set edits, and ownership boundaries. `test:ui` exercises real React providers with a mocked Supabase transport plus the worker's fetch/cache handlers.
 
-PGlite uses one database connection. These tests verify interleaved outcomes and transaction rollback; they do not establish two-connection lock behavior or deployed browser/HTTP headers.
+For the extended local checks, install the test browsers with `npx playwright install chromium firefox webkit`, then run `npm run test:required`. Browser downloads can use `PLAYWRIGHT_BROWSERS_PATH` if a separate cache location is needed.
+
+- `test:native` repeats every SQL regression against a disposable native PostgreSQL 17.6 server and tests lock contention on independent connections. It never connects to a configured external database. The server listens on loopback and its temporary data directory is removed afterward.
+- `test:browser` builds the production frontend and runs Chromium, Firefox, and WebKit against real PostgreSQL RPCs through a local HTTP contract fixture. Browser storage, the Supabase SDK, React, network failures, BroadcastChannel, and service workers are real. The fixture supplies test authentication responses and RPC HTTP dispatch; it does **not** validate managed Supabase Auth, PostgREST, API gateway headers, or deployed settings.
+- Browser checks cover migration and ordinary-write recovery, concurrent profiles, stale edits and restores, delayed responses, account transitions, token refresh, cross-tab logout, polling, storage quota, remote deletion, and worker cache behavior. Hidden-document polling is tested using a simulated visibility property; quota failure is injected. Worker offline startup is tested by refusing origin connections, with a fresh no-worker context as a negative control. This avoids Playwright's [WebKit offline-emulation defect](https://github.com/microsoft/playwright/issues/42775).
+
+The extended commands are local verification. Live Supabase checks and installed PWA/device checks remain separate rollout requirements.
 
 ## Staging checks before rollout
 
@@ -59,4 +65,4 @@ PGlite uses one database connection. These tests verify interleaved outcomes and
 - Verify visible polling, hidden/offline suppression, slow overlapping reads, pending writes across account changes, quota failures and Cache Storage behavior in each supported browser. Browser storage clearing still erases guest data and local recovery records.
 - Run Supabase database security advisors against the staged schema. Check function grants, RLS and composite foreign keys against the deployed schema, not only this repository.
 
-No live database migration, production deployment, or real multi-browser test is performed by the local test commands.
+No live database migration or production deployment is performed by these commands. Browser-engine tests do not substitute for an installed PWA on supported physical devices.

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
@@ -33,8 +33,7 @@ export default function MeasurementDetail() {
   const measurement = data.measurements?.find(m => m.id === measId);
 
   if (!measurement) {
-    navigate('/measurements', { replace: true });
-    return null;
+    return <Navigate to="/measurements" replace />;
   }
 
   const handleAddEntry = async () => {

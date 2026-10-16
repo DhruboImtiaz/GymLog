@@ -7,6 +7,7 @@ import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 const A = '11111111-1111-4111-8111-111111111111';
 const B = '22222222-2222-4222-8222-222222222222';
 let db;
+let native;
 const guest = () => ({ days: [{ id: 'd', name: 'Push', createdAt: '2026-10-16', exercises: [{ id: 'e', name: 'Bench', sets: [{ id: 's', num: 1, reps: 5, weight: 50 }], history: [] }] }], measurements: [{ id: 'm', name: 'Weight', createdAt: '2026-10-16', entries: [{ id: 'en', date: '2026-10-16', value: 70, unit: 'kg' }] }] });
 async function identity(id = A) { await db.query("select set_config('request.jwt.claim.sub', $1, false)", [id]); }
 async function snapshot(id = A) { return (await db.query('select public.get_gymlog_snapshot($1) as doc', [id])).rows[0].doc; }
@@ -20,7 +21,11 @@ async function save(sets = guest().days[0].exercises[0].sets, operation = 'sessi
 }
 
 before(async () => {
-  db = new PGlite({ extensions: { pgcrypto } });
+  if (process.env.GYMLOG_NATIVE_TEST === '1') {
+    const { nativePostgres } = await import('./helpers/native-postgres.js');
+    native = await nativePostgres();
+    db = native.db;
+  } else db = new PGlite({ extensions: { pgcrypto } });
   await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE SCHEMA auth;
     CREATE TABLE auth.users(id uuid PRIMARY KEY);
     CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
@@ -35,7 +40,7 @@ before(async () => {
     CREATE TRIGGER inject_measurement_failure BEFORE INSERT ON public.measurements FOR EACH ROW EXECUTE FUNCTION public.inject_failure();
     CREATE TRIGGER inject_history_failure BEFORE INSERT ON public.workout_history_sets FOR EACH ROW EXECUTE FUNCTION public.inject_failure();`);
 });
-after(async () => { await db?.close(); });
+after(async () => { if (native) await native.close(); else await db?.close(); });
 beforeEach(async () => {
   await db.exec("RESET ROLE; SELECT set_config('request.jwt.claim.sub','',false); SELECT set_config('gymlog_test.fail','',false); TRUNCATE public.workout_days,public.measurements,public.gymlog_sync_operations CASCADE; SET ROLE authenticated;");
   await identity();
@@ -226,4 +231,66 @@ test('large nested snapshots retain all entries with deterministic equal-date or
   const entries=(await snapshot()).measurements[0].entries;
   assert.equal(entries.length,1201);
   assert.equal(entries[0].id,'bulk-0001'); assert.equal(entries[1199].id,'bulk-1200');
+});
+
+test('exercise create, rename, scoped reorder and delete preserve unrelated exercises',async()=>{
+  await seed();
+  await mutate('add_exercise',{id:'e2',dayId:'d',name:'Press'});
+  await mutate('rename_exercise',{id:'e2',name:'Overhead press'});
+  await mutate('reorder_exercises',{dayId:'d',ids:['e2','e']});
+  assert.deepEqual((await snapshot()).days[0].exercises.map(e=>e.name),['Overhead press','Bench']);
+  const original=await snapshot();
+  await assert.rejects(mutate('reorder_exercises',{dayId:'other-day',ids:['e','e2']}),/Exercise order changed/);
+  assert.deepEqual(await snapshot(),original);
+  await mutate('delete_exercise',{id:'e2'});
+  assert.equal((await snapshot()).days[0].exercises[0].sets[0].weight,50);
+});
+test('ordinary set create, update and delete preserve numbering and deduplicate retries',async()=>{
+  await seed();const version=(await snapshot())._version;
+  const payload={id:'s2',exerciseId:'e',reps:8,weight:60};
+  await mutate('add_set',payload,{id:'add-set',version});
+  assert.equal((await mutate('add_set',payload,{id:'add-set',version})).replayed,true);
+  await mutate('update_set',{id:'s2',reps:9,weight:65});
+  await mutate('delete_set',{id:'s'});
+  assert.deepEqual((await snapshot()).days[0].exercises[0].sets,[{id:'s2',num:1,reps:9,weight:65}]);
+  await assert.rejects(mutate('delete_set',{id:'s'}),/no longer exists/);
+});
+test('measurement create, rename, entry create/delete, reorder and cascade delete work atomically',async()=>{
+  await seed();
+  await mutate('create_measurement',{id:'m2',name:'Waist',createdAt:'2026-10-16'});
+  await mutate('rename_measurement',{id:'m2',name:'Waist circumference'});
+  await mutate('add_measurement_entry',{id:'entry2',measurementId:'m2',logDate:'2026-10-16',value:80,unit:'cm'});
+  await mutate('reorder_measurements',{ids:['m2','m']});
+  const current=await snapshot();assert.equal(current.measurements[0].name,'Waist circumference');assert.equal(current.measurements[0].entries[0].value,80);
+  await assert.rejects(mutate('reorder_measurements',{ids:['m2']}),/List changed/);
+  await mutate('delete_measurement_entry',{id:'entry2'});assert.equal((await snapshot()).measurements[0].entries.length,0);
+  await mutate('delete_measurement',{id:'m'});assert.equal((await db.query("select count(*)::int as n from public.measurement_entries where measurement_id='m'")).rows[0].n,0);
+});
+test('day delete cascades sets and history; a repeated receipt preserves a recreated day',async()=>{
+  await seed();await save();const version=(await snapshot())._version;
+  await mutate('delete_day',{id:'d'},{version,id:'delete-original'});
+  assert.equal((await snapshot()).days.length,0);
+  for(const table of ['exercises','active_sets','workout_history','workout_history_sets'])assert.equal((await db.query(`select count(*)::int as n from public.${table}`)).rows[0].n,0);
+  await mutate('create_day',{id:'d',name:'Recreated',createdAt:'2026-10-16'});
+  assert.equal((await mutate('delete_day',{id:'d'},{version,id:'delete-original'})).replayed,true);
+  assert.equal((await snapshot()).days[0].name,'Recreated');
+});
+test('missing targets and malformed ordinary actions roll back and create no receipt',async()=>{
+  await seed();const original=await snapshot();
+  for(const [action,payload] of [
+    ['rename_exercise',{id:'missing',name:'No'}],['delete_exercise',{id:'missing'}],['update_set',{id:'missing',reps:5,weight:5}],
+    ['rename_measurement',{id:'missing',name:'No'}],['delete_measurement',{id:'missing'}],['delete_measurement_entry',{id:'missing'}],
+    ['add_exercise',{id:'bad',dayId:'missing',name:'No'}],['add_measurement_entry',{id:'bad',measurementId:'missing',logDate:'2026-10-16',value:1,unit:'kg'}],
+    ['create_day',{id:'bad',name:'No',createdAt:'2026-02-30'}],['create_day',{id:'bad',name:'',createdAt:'2026-10-16'}],['unknown',{id:'bad'}]
+  ]){
+    await assert.rejects(mutate(action,payload,{id:'rejected'}));assert.deepEqual(await snapshot(),original);
+    assert.equal((await db.query("select count(*)::int as n from public.gymlog_sync_operations where operation_id='rejected'")).rows[0].n,0);
+  }
+});
+test('all relationship foreign keys include ownership and reject cross-account parents',async()=>{
+  const rows=(await db.query("select conrelid::regclass::text as child,pg_get_constraintdef(oid) as definition from pg_constraint where contype='f' and connamespace='public'::regnamespace and confrelid in ('public.workout_days'::regclass,'public.exercises'::regclass,'public.workout_history'::regclass,'public.measurements'::regclass)")).rows;
+  assert.equal(rows.length,5);assert.ok(rows.every(r=>/FOREIGN KEY \(\w+, user_id\) REFERENCES \w+\(id, user_id\)/.test(r.definition)));
+  await seed();await identity(B);
+  await assert.rejects(mutate('add_exercise',{id:'foreign',dayId:'d',name:'Cross-account'},{user:B}),/foreign key/);
+  assert.equal((await snapshot(B)).days.length,0);
 });

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { SettingsIcon, EditIcon, DragHandleIcon } from '../components/ui/Icons';
@@ -34,8 +34,7 @@ export default function WorkoutDay() {
   useWriteCompletion('delete_exercise', p => { if (p.id === confirmDeleteId) { setConfirmDeleteId(null); setRenamingExId(null); } });
 
   if (!day) {
-    navigate('/', { replace: true });
-    return null;
+    return <Navigate to="/" replace />;
   }
 
   const handleAdd = async () => {
