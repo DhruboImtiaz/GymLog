@@ -49,7 +49,12 @@ async function profile(name,{local,path='/',authenticated=true,oldCache=false,se
   const page=await context.newPage();page.setDefaultTimeout(15000);page.on('dialog',dialog=>dialog.accept());
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   page.on('response',async response=>{if(response.url().includes('/auth/v1/user')&&response.status()>=400){const body=await response.json().catch(()=>({}));console.error('Managed Auth user request:',response.status(),body.code||body.error_code||body.msg||'');}});
-  if(oldCache){await page.goto(server.url+'/test-blank.html');await page.evaluate(async()=>{const c=await caches.open('gymlog-cache-v1');await c.put('/rest/v1/private',new Response('old private response'));});}
+  if(oldCache){
+    // A deployed SPA rewrites this path to the app. Supply a blank setup page
+    // before registration so activation really encounters the seeded old cache.
+    if(process.env.GYMLOG_DEPLOYED_URL)await context.route(server.url+'/test-blank.html',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Setup</title>'}));
+    await page.goto(server.url+'/test-blank.html');await page.evaluate(async()=>{const c=await caches.open('gymlog-cache-v1');await c.put('/rest/v1/private',new Response('old private response'));});
+  }
   await page.goto(server.url+path);return{page,context,errors};
 }
 async function signInUI(page,index){await page.goto(server.url+'/auth');await page.getByPlaceholder('you@example.com').fill(config.accounts[index].email);await page.locator('input[type=password]').fill(config.accounts[index].password);await page.getByRole('button',{name:'Log In',exact:true}).click();await page.waitForFunction(({key,id})=>JSON.parse(localStorage.getItem(key)||'null')?.user?.id===id,{key,id:config.accounts[index].id});sessions[index]=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);}

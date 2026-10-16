@@ -6,6 +6,11 @@ import {build} from 'vite';
 
 // Serves the production build only. Auth and RPC requests go to managed Supabase.
 export async function liveAppServer(config){
+  if(process.env.GYMLOG_DEPLOYED_URL){
+    const url=new URL(process.env.GYMLOG_DEPLOYED_URL);
+    if(url.protocol!=='https:'||!['gymlog7.netlify.app','deploy-preview-1--gymlog7.netlify.app'].includes(url.hostname)||url.pathname!=='/'||url.search||url.hash||url.username||url.password)throw new Error('Use the reviewed GymLog production or release-preview origin.');
+    return {url:url.origin,async close(){}};
+  }
   const dir=await mkdtemp(join(tmpdir(),'gymlog-live-frontend-'));
   await build({logLevel:'error',define:{'import.meta.env.VITE_SUPABASE_URL':JSON.stringify(config.url),'import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY':JSON.stringify(config.key)},build:{outDir:dir,emptyOutDir:true}});
   const controls={offline:false};
