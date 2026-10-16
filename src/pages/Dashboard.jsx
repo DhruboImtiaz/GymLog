@@ -6,6 +6,7 @@ import { useSettings } from '../context/SettingsContext';
 import { SettingsIcon, EditIcon, DragHandleIcon } from '../components/ui/Icons';
 
 import usePointerReorder from '../hooks/usePointerReorder';
+import useWriteCompletion from '../hooks/useWriteCompletion';
 
 export default function Dashboard() {
   const { data, createDay, renameDay, deleteDay, reorderDays } = useGymLogData();
@@ -20,31 +21,36 @@ export default function Dashboard() {
   const [newDayName, setNewDayName] = useState('');
 
   const [renamingDayId, setRenamingDayId] = useState(null);
+  const [renameVersion, setRenameVersion] = useState(null);
   const [renameValue, setRenameValue] = useState('');
 
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
+  useWriteCompletion('create_day', p => { if (p.name === newDayName.trim()) { setNewDayName(''); setIsCreateOpen(false); } });
+  useWriteCompletion('rename_day', p => { if (p.id === renamingDayId && p.name === renameValue.trim()) setRenamingDayId(null); });
+  useWriteCompletion('delete_day', p => { if (p.id === confirmDeleteId) { setConfirmDeleteId(null); setRenamingDayId(null); } });
+
   const h = new Date().getHours();
   const greeting = (h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening') + ' — let\'s train';
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (newDayName.trim()) {
-      createDay(newDayName.trim());
+      if (!await createDay(newDayName.trim())) return;
       setNewDayName('');
       setIsCreateOpen(false);
     }
   };
 
-  const handleRename = () => {
+  const handleRename = async () => {
     if (renameValue.trim() && renamingDayId) {
-      renameDay(renamingDayId, renameValue.trim());
+      if (!await renameDay(renamingDayId, renameValue.trim(), renameVersion)) return;
       setRenamingDayId(null);
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirmDeleteId) {
-      deleteDay(confirmDeleteId);
+      if (!await deleteDay(confirmDeleteId)) return;
       setConfirmDeleteId(null);
       setRenamingDayId(null);
     }
@@ -86,6 +92,7 @@ export default function Dashboard() {
                     <button className="card-edit-btn" onClick={(e) => {
                       e.stopPropagation();
                       setRenameValue(d.name);
+                      setRenameVersion(data?._version);
                       setRenamingDayId(d.id);
                     }} title="Edit Day">
                       <EditIcon />

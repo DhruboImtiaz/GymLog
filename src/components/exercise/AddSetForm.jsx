@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
+import useWriteCompletion from '../../hooks/useWriteCompletion';
 import DateSelector from './DateSelector';
 
-export default function AddSetForm({ onAdd, dateOffset, setDateOffset }) {
+export default function AddSetForm({ onAdd, dateOffset, setDateOffset, disabled }) {
   const [reps, setReps] = useState('');
   const [weight, setWeight] = useState('');
+  const submitting = React.useRef(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleAdd = () => {
+  useWriteCompletion('add_set', p => { if (p.reps === Number(reps) && p.weight === Number(weight)) { setReps(''); setWeight(''); } });
+
+  const handleAdd = async () => {
+    if (disabled || submitting.current) return;
     const r = parseFloat(reps);
     const w = parseFloat(weight);
     if (!r || r < 1) {
@@ -17,11 +23,11 @@ export default function AddSetForm({ onAdd, dateOffset, setDateOffset }) {
       return;
     }
     
-    onAdd(r, w);
-    
-    // Clear inputs after successful add
-    setReps('');
-    setWeight('');
+    submitting.current = true;
+    setIsSubmitting(true);
+    try {
+      if (await onAdd(r, w)) { setReps(''); setWeight(''); }
+    } finally { submitting.current = false; setIsSubmitting(false); }
   };
 
   const adj = (field, amt) => {
@@ -88,7 +94,7 @@ export default function AddSetForm({ onAdd, dateOffset, setDateOffset }) {
         </div>
       </div>
       
-      <button type="submit" className="btn btn-primary btn-full">Log Set</button>
+      <button disabled={disabled || isSubmitting} type="submit" className="btn btn-primary btn-full">Log Set</button>
     </form>
   );
 }

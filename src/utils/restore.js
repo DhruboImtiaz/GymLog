@@ -46,6 +46,7 @@ export function validateBackupFile(file, text) {
 export function executeRestore(backup) {
   let parsedDataModel = {};
   for (const [key, value] of Object.entries(backup.data)) {
+    if (!['gymlog_data', 'gymlog_theme', 'gymlog_font_size'].includes(key)) continue;
     try {
       parsedDataModel[key] = JSON.parse(value);
     } catch(e) {
@@ -61,72 +62,24 @@ export function executeRestore(backup) {
     throw new Error('Failed to restore backup.');
   }
 
-  const rollback = {};
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('gymlog_')) {
-      rollback[key] = localStorage.getItem(key);
-    }
-  }
+  deepValidateBackup(migratedDataModel['gymlog_data']);
 
+  // One localStorage value contains the complete workout dataset. setItem is
+  // atomic: a quota/security failure leaves the previous value intact.
   try {
-    // Wipe current gymlog keys
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('gymlog_')) {
-        localStorage.removeItem(key);
-      }
-    }
-
-    // Insert new data
-    for (const [key, value] of Object.entries(migratedDataModel)) {
-      if (typeof value === 'object') {
-        localStorage.setItem(key, JSON.stringify(value));
-      } else {
-        localStorage.setItem(key, String(value));
-      }
-    }
-
-    // Verify
-    let verified = false;
-    try {
-      const dbStr = localStorage.getItem('gymlog_data');
-      if (!dbStr) {
-        verified = true;
-      } else {
-        const db = JSON.parse(dbStr);
-        if (Array.isArray(db.days) && Array.isArray(db.measurements)) {
-          verified = true;
-        }
-      }
-    } catch(e) {}
-
-    if (!verified) {
-      throw new Error('Backup verification failed.');
-    }
-
-    localStorage.setItem('gymlog_restore_success', 'true');
-    window.location.reload();
-
-  } catch (e) {
-    console.error(e);
-    // Rollback
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('gymlog_')) {
-        localStorage.removeItem(key);
-      }
-    }
-    for (const [key, value] of Object.entries(rollback)) {
-      localStorage.setItem(key, value);
-    }
-
-    if (e.message === 'Backup verification failed.') {
-      throw new Error('Backup verification failed. Previous data has been restored.');
-    } else {
-      throw new Error('Failed to restore backup. Previous data has been restored.');
-    }
+    localStorage.setItem('gymlog_data', JSON.stringify(migratedDataModel['gymlog_data']));
+  } catch {
+    throw new Error('Failed to restore workout data. Your existing data is unchanged.');
   }
+  try {
+    for (const key of ['gymlog_theme', 'gymlog_font_size']) {
+      if (migratedDataModel[key] !== undefined) localStorage.setItem(key, String(migratedDataModel[key]));
+    }
+    localStorage.setItem('gymlog_restore_success', 'true');
+  } catch {
+    throw new Error('Workout data was restored, but browser storage could not finish saving settings. Reload to view the restored data.');
+  }
+  window.location.reload();
 }
 
 export function deepValidateBackup(data) {
@@ -171,7 +124,7 @@ export function deepValidateBackup(data) {
   data.days.forEach(day => {
     checkId(day.id);
     checkString(day.name);
-    if (day.createdAt !== undefined) checkDate(day.createdAt);
+    checkDate(day.createdAt);
     if (!Array.isArray(day.exercises)) throw new Error(`Missing exercises for day ${day.id}`);
 
     // Exercises
@@ -180,9 +133,12 @@ export function deepValidateBackup(data) {
       checkString(ex.name);
 
       // Active Sets
-      if (ex.sets) {
+      if (ex.sets !== undefined) {
         if (!Array.isArray(ex.sets)) throw new Error(`Invalid sets for exercise ${ex.id}`);
+        const setNumbers = new Set();
         ex.sets.forEach(set => {
+          if (setNumbers.has(set.num)) throw new Error('Duplicate active set number.');
+          setNumbers.add(set.num);
           checkId(set.id);
           checkNumber(set.num, false, false, true);
           checkNumber(set.reps, false, false, true);
@@ -191,15 +147,18 @@ export function deepValidateBackup(data) {
       }
 
       // History
-      if (ex.history) {
+      if (ex.history !== undefined) {
         if (!Array.isArray(ex.history)) throw new Error(`Invalid history for exercise ${ex.id}`);
         ex.history.forEach(hist => {
           checkId(hist.id);
           checkDate(hist.date);
 
-          if (hist.sets) {
+          if (hist.sets !== undefined) {
             if (!Array.isArray(hist.sets)) throw new Error(`Invalid history sets for history ${hist.id}`);
+            const historyNumbers = new Set();
             hist.sets.forEach(hSet => {
+              if (historyNumbers.has(hSet.num)) throw new Error('Duplicate historical set number.');
+              historyNumbers.add(hSet.num);
               checkNumber(hSet.num, false, false, true);
               checkNumber(hSet.reps, false, false, true);
               checkNumber(hSet.weight, true, false, false);
@@ -214,9 +173,9 @@ export function deepValidateBackup(data) {
   data.measurements.forEach(meas => {
     checkId(meas.id);
     checkString(meas.name);
-    if (meas.createdAt !== undefined) checkDate(meas.createdAt);
+    checkDate(meas.createdAt);
 
-    if (meas.entries) {
+    if (meas.entries !== undefined) {
       if (!Array.isArray(meas.entries)) throw new Error(`Invalid entries for measurement ${meas.id}`);
       meas.entries.forEach(entry => {
         checkId(entry.id);

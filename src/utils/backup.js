@@ -6,15 +6,17 @@ export function generateBackup(currentData = null, sourceMode = 'guest') {
   const data = {};
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    // Identify GymLog keys by prefix 'gymlog_', explicitly avoiding restore_success
-    if (key && key.startsWith('gymlog_') && key !== 'gymlog_restore_success') {
+    // Recovery journals and migration acknowledgements belong to this browser/account.
+    if (['gymlog_data', 'gymlog_theme', 'gymlog_font_size'].includes(key)) {
       data[key] = localStorage.getItem(key);
     }
   }
 
-  if (sourceMode === 'cloud' && currentData) {
+  if (currentData) {
     data['gymlog_data'] = JSON.stringify(currentData);
   }
+
+  if (!data['gymlog_data']) data['gymlog_data'] = JSON.stringify({ days: [], measurements: [] });
 
   const browser = navigator.userAgent;
   const platform = navigator.platform;

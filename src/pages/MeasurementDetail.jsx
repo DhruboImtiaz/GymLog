@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import { SettingsIcon } from '../components/ui/Icons';
 import { fmt } from '../utils/helpers';
+import useWriteCompletion from '../hooks/useWriteCompletion';
 import DateSelector from '../components/exercise/DateSelector';
 
 export default function MeasurementDetail() {
@@ -18,6 +19,8 @@ export default function MeasurementDetail() {
   const [inValue, setInValue] = useState('');
   const [inUnit, setInUnit] = useState('cm');
 
+  useWriteCompletion('add_measurement_entry', p => { if (p.measurementId === measId && p.value === Number(inValue) && p.unit === inUnit) setInValue(''); });
+
   const handleAdj = (amt) => {
     let current = parseFloat(inValue);
     if (isNaN(current)) current = 0;
@@ -30,26 +33,25 @@ export default function MeasurementDetail() {
   const measurement = data.measurements?.find(m => m.id === measId);
 
   if (!measurement) {
-    navigate('/measurements', { replace: true });
-    return null;
+    return <Navigate to="/measurements" replace />;
   }
 
-  const handleAddEntry = () => {
+  const handleAddEntry = async () => {
     const val = parseFloat(inValue);
     if (isNaN(val)) {
       alert('Enter valid value');
       return;
     }
-    addMeasurementEntry(measId, val, inUnit, dateOffset);
+    if (!await addMeasurementEntry(measId, val, inUnit, dateOffset)) return;
     setInValue('');
     const dateLbl = dateOffset === 0 ? 'Today' : dateOffset === 1 ? 'Yesterday' : '2 days ago';
     alert(`Entry logged for ${dateLbl}!`);
   };
 
-  const handleDeleteEntry = (entryId) => {
+  const handleDeleteEntry = async (entryId) => {
     const ok = window.confirm('Delete this entry?');
     if (!ok) return;
-    deleteMeasurementEntry(measId, entryId);
+    if (!await deleteMeasurementEntry(measId, entryId)) return;
     alert('Entry deleted');
   };
 

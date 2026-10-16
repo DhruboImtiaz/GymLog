@@ -14,12 +14,14 @@ export default function usePointerReorder(containerRef, itemsArray, onSave) {
     const container = containerRef.current;
     if (!container) return;
 
+    const cleanupHandlers = [];
+    const dragCleanups = new Set();
+    const animationTimers = new Set();
+
     // Small delay to ensure DOM cards are fully rendered before binding
     const bindTimeout = setTimeout(() => {
       const cards = Array.from(container.children).filter(el => el.classList.contains('card'));
       if (cards.length < 2) return;
-
-      const cleanupHandlers = [];
 
       cards.forEach((card) => {
         const handle = card.querySelector('.card-drag-handle');
@@ -30,6 +32,8 @@ export default function usePointerReorder(containerRef, itemsArray, onSave) {
           e.preventDefault();
           e.stopPropagation();
 
+          const itemsAtStart = itemsRef.current;
+          const saveAtStart = onSaveRef.current;
           const startY = e.clientY;
           const allCards = Array.from(container.children).filter(el => el.classList.contains('card'));
           const fromIndex = allCards.indexOf(card);
@@ -88,6 +92,7 @@ export default function usePointerReorder(containerRef, itemsArray, onSave) {
             handle.removeEventListener('pointermove', onPointerMove);
             handle.removeEventListener('pointerup', onPointerUp);
             handle.removeEventListener('pointercancel', onPointerUp);
+            dragCleanups.delete(cleanupDrag);
 
             let finalDelta = 0;
             if (targetIndex !== fromIndex) {
@@ -97,7 +102,8 @@ export default function usePointerReorder(containerRef, itemsArray, onSave) {
             card.style.transition = 'transform 0.22s cubic-bezier(0.2, 0, 0, 1)';
             card.style.transform = `translate3d(0, ${finalDelta}px, 0)`;
 
-            setTimeout(() => {
+            const animation = setTimeout(() => {
+              animationTimers.delete(animation);
               allCards.forEach(c => {
                 c.classList.remove('is-dragging', 'is-shifting');
                 c.style.transform = '';
@@ -105,14 +111,22 @@ export default function usePointerReorder(containerRef, itemsArray, onSave) {
               });
 
               if (targetIndex !== fromIndex) {
-                const reordered = [...itemsRef.current];
+                const reordered = [...itemsAtStart];
                 const [moved] = reordered.splice(fromIndex, 1);
                 reordered.splice(targetIndex, 0, moved);
-                onSaveRef.current(reordered);
+                saveAtStart(reordered);
               }
             }, 220);
+            animationTimers.add(animation);
           };
 
+          const cleanupDrag = () => {
+            handle.removeEventListener('pointermove', onPointerMove);
+            handle.removeEventListener('pointerup', onPointerUp);
+            handle.removeEventListener('pointercancel', onPointerUp);
+            try { handle.releasePointerCapture(e.pointerId); } catch {}
+          };
+          dragCleanups.add(cleanupDrag);
           handle.addEventListener('pointermove', onPointerMove);
           handle.addEventListener('pointerup', onPointerUp);
           handle.addEventListener('pointercancel', onPointerUp);
@@ -129,11 +143,13 @@ export default function usePointerReorder(containerRef, itemsArray, onSave) {
         });
       });
 
-      return () => {
-        cleanupHandlers.forEach(cleanup => cleanup());
-      };
     }, 50);
 
-    return () => clearTimeout(bindTimeout);
+    return () => {
+      clearTimeout(bindTimeout);
+      animationTimers.forEach(clearTimeout);
+      dragCleanups.forEach(cleanup => cleanup());
+      cleanupHandlers.forEach(cleanup => cleanup());
+    };
   }, [itemsArray]); // Re-bind if array length/identity changes dramatically
 }

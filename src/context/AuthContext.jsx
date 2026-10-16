@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 const AuthContext = createContext();
@@ -8,24 +8,32 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const identityRef = useRef({ userId: null, epoch: 0 });
+  const [identityEpoch, setIdentityEpoch] = useState(0);
+
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let active = true;
+    let authEvents = 0;
+    const applySession = session => {
+      if (!active) return;
+      const userId = session?.user?.id || null;
+      if (identityRef.current.userId !== userId) {
+        identityRef.current = { userId, epoch: identityRef.current.epoch + 1 };
+        setIdentityEpoch(identityRef.current.epoch);
+      }
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => {
-      subscription?.unsubscribe();
     };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      authEvents++;
+      applySession(session);
+    });
+    const initialEvents = authEvents;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (authEvents === initialEvents) applySession(session);
+    }).catch(() => { if (active && authEvents === initialEvents) applySession(null); });
+    return () => { active = false; subscription?.unsubscribe(); };
   }, []);
 
   const signUp = async (email, password) => {
@@ -68,6 +76,8 @@ export function AuthProvider({ children }) {
   const value = {
     session,
     user,
+    identityRef,
+    identityEpoch,
     loading,
     signUp,
     signIn,
