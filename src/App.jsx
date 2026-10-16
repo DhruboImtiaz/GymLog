@@ -33,15 +33,17 @@ function AppShell() {
 }
 
 function App() {
-  const { isMalformed, data, cloudStatus, cloudError, clearCloudError, retryCloud, sourceMode } = useGymLogData();
+  const { isMalformed, data, cloudStatus, cloudError, clearCloudError, retryCloud, retryPendingWrite, pendingWrite, cloudBusy, refreshing, sourceMode } = useGymLogData();
 
   const [restoreSuccess, setRestoreSuccess] = React.useState(false);
 
   React.useEffect(() => {
-    if (localStorage.getItem('gymlog_restore_success') === 'true') {
-      localStorage.removeItem('gymlog_restore_success');
-      setRestoreSuccess(true);
-    }
+    try {
+      if (localStorage.getItem('gymlog_restore_success') === 'true') {
+        localStorage.removeItem('gymlog_restore_success');
+        setRestoreSuccess(true);
+      }
+    } catch { /* Storage failures are reported by the data provider. */ }
   }, []);
 
   if (isMalformed) {
@@ -49,16 +51,17 @@ function App() {
       <div className="content empty">
         <h1 className="empty-title">Data Error</h1>
         <p className="empty-text">Your GymLog data is malformed and cannot be loaded. It has been preserved safely in storage.</p>
+        <button className="btn btn-primary" onClick={retryCloud}>Retry loading data</button>
       </div>
     );
   }
 
-  if (cloudStatus === 'error') {
+  if (cloudStatus === 'error' && !data) {
     return (
       <div className="content empty">
-        <h1 className="empty-title">Cloud Error</h1>
+        <h1 className="empty-title">{sourceMode === 'guest' ? 'Storage Error' : 'Cloud Error'}</h1>
         <p className="empty-text">{cloudError || 'Failed to connect to the cloud database.'}</p>
-        <button className="btn btn-primary" onClick={retryCloud}>Retry connection</button>
+        <button className="btn btn-primary" disabled={refreshing} onClick={retryCloud}>{refreshing ? 'Retrying…' : 'Retry connection'}</button>
       </div>
     );
   }
@@ -76,9 +79,18 @@ function App() {
             <button onClick={() => setRestoreSuccess(false)} style={{ marginLeft: '10px', background: 'transparent', border: '1px solid #fff', color: '#fff', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}>Dismiss</button>
           </div>
         )}
+        {sourceMode === 'cloud' && <div role="status" style={{ padding: '8px 16px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <span>{cloudBusy ? 'Saving…' : refreshing ? 'Refreshing…' : cloudStatus === 'stale' ? 'Showing last loaded data' : 'Cloud data loaded'}</span>
+          <button className="btn btn-xs" disabled={cloudBusy || refreshing} onClick={retryCloud}>Refresh</button>
+        </div>}
+        {pendingWrite && <div role="alert" style={{ padding: '12px 16px', background: 'var(--adim)' }}>
+          {pendingWrite.phase === 'acknowledged' ? 'Your change was saved. Finish refreshing before making another change.' : 'A previous change may not have finished. Retry it safely before making another change.'}
+          <button className="btn btn-sm" disabled={cloudBusy || refreshing} onClick={retryPendingWrite}>Retry saved change</button>
+        </div>}
         {cloudError && (
           <div style={{ background: 'var(--danger, #ff4444)', color: '#fff', padding: '10px', textAlign: 'center', fontWeight: 'bold', zIndex: 1000, position: 'relative' }}>
             {cloudError}
+            <button disabled={cloudBusy || refreshing} onClick={retryCloud} style={{ marginLeft: '10px' }}>Retry refresh</button>
             <button onClick={clearCloudError} style={{ marginLeft: '10px', background: 'transparent', border: '1px solid #fff', color: '#fff', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}>Dismiss</button>
           </div>
         )}

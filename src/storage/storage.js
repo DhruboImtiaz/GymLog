@@ -1,3 +1,5 @@
+import { deepValidateBackup } from '../utils/restore.js';
+
 const DATA_KEY = 'gymlog_data';
 const THEME_KEY = 'gymlog_theme';
 const FONT_SIZE_KEY = 'gymlog_font_size';
@@ -26,10 +28,12 @@ export function getGymLogData() {
     return null;
   }
   
-  // Ensure the schema shape exists
-  if (!parsedData.days) parsedData.days = [];
-  if (!parsedData.measurements) parsedData.measurements = [];
-  
+  if (typeof parsedData !== 'object' || Array.isArray(parsedData)) return null;
+  // Older guest records may omit a root array; explicit invalid values stay invalid.
+  if (parsedData.days === undefined) parsedData.days = [];
+  if (parsedData.measurements === undefined) parsedData.measurements = [];
+  try { deepValidateBackup(parsedData); } catch { return null; }
+
   return parsedData;
 }
 
@@ -41,7 +45,7 @@ export function saveGymLogData(data) {
 }
 
 export function getTheme() {
-  return localStorage.getItem(THEME_KEY) || 'dark';
+  try { return localStorage.getItem(THEME_KEY) || 'dark'; } catch { return 'dark'; }
 }
 
 export function saveTheme(theme) {
@@ -49,8 +53,10 @@ export function saveTheme(theme) {
 }
 
 export function getFontSize() {
-  const saved = localStorage.getItem(FONT_SIZE_KEY);
-  return saved ? parseInt(saved, 10) : 16;
+  try {
+    const saved = Number(localStorage.getItem(FONT_SIZE_KEY));
+    return Number.isFinite(saved) && saved >= 12 && saved <= 24 ? saved : 16;
+  } catch { return 16; }
 }
 
 export function saveFontSize(size) {

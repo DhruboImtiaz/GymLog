@@ -50,7 +50,7 @@ GymLog is an offline-first Progressive Web App (PWA) for tracking gym workouts a
 
 ### Browser Navigation
 - Full `history.pushState` / `popstate` support — the browser back button works correctly between pages
-- Deep-linkable via Netlify redirects (`_redirects`) — all routes fall back to `index.html`
+- Deep-linkable via `netlify.toml` — all routes fall back to `index.html`
 
 ---
 
@@ -75,7 +75,7 @@ GymLog is an offline-first Progressive Web App (PWA) for tracking gym workouts a
 To run GymLog locally with cloud functionality, you need a Supabase project.
 
 1. Create a [Supabase](https://supabase.com) project.
-2. Apply the SQL migrations to create the tables and transaction RPCs. Existing projects must apply `supabase/migrations/20261016091534_p1_atomic_sync.sql` before deploying this frontend. See [sync rollout and verification](docs/sync-safety.md) for historical migration ordering and deployment checks.
+2. Apply the SQL migrations to create the tables and transaction RPCs. Existing projects must apply `supabase/migrations/20261016091534_p1_atomic_sync.sql`, `supabase/migrations/20261016101518_p2_write_recovery.sql`, and `supabase/migrations/20261016125242_explicit_sync_conflicts.sql` before deploying this frontend. The final migration returns explicit HTTP conflicts and prevents managed PostgREST from retrying stale writes indefinitely. See [sync rollout and verification](docs/sync-safety.md) for historical migration ordering and deployment checks.
 
 ### Installation
 ```bash
@@ -92,7 +92,7 @@ Create a `.env.local` file in the root directory:
 
 ```env
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 ```
 
 ### Run Locally
@@ -110,7 +110,7 @@ Then visit `http://localhost:3000`.
 
 ## Deployment
 
-The app is deployed on **Netlify**. Push to a connected GitHub repo and Netlify will deploy automatically. The `_redirects` file rewrites all paths to `index.html` so navigation works correctly on refresh or direct URL access.
+The app is deployed on **Netlify**. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in the project's build environment before deploying. Push to the connected GitHub repo and Netlify will deploy automatically. `netlify.toml` builds and publishes `dist`, rewrites app routes to `index.html`, and makes browsers revalidate the service worker so installed apps receive updates.
 
 ```text
 /* /index.html 200
@@ -123,7 +123,7 @@ The app is deployed on **Netlify**. Push to a connected GitHub repo and Netlify 
 GymLog implements a secure hybrid approach:
 
 - **Guest Mode:** All data is stored in the browser's `localStorage`. Clearing browser storage or uninstalling the PWA will erase all local data.
-- **Cloud Mode:** All authenticated data is persisted strictly in the cloud via Supabase PostgreSQL, utilizing Row Level Security (RLS) to ensure absolute data privacy. The UI updates after confirmed writes and a fresh cloud snapshot. Uploads, replacements, session saves, and active-set deletion use database transactions. Replacement rejects a cloud snapshot that changed since the preview; session saves reject edited or deleted source sets and preserve newly added sets.
+- **Cloud Mode:** All authenticated data is persisted strictly in the cloud via Supabase PostgreSQL, utilizing Row Level Security (RLS) to ensure absolute data privacy. The UI updates after confirmed writes and a fresh cloud snapshot. Uploads, replacements, session saves, ordinary edits, and reordering use database transactions with replay receipts. Open devices refresh on focus/reconnect and every 30 seconds while visible. Failed refreshes retain the last loaded data and open forms; uncertain writes can be retried safely after reload. Replacement rejects a cloud snapshot that changed since the preview; session saves reject edited or deleted source sets and preserve newly added sets.
 
 ---
 

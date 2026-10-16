@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { SettingsIcon, EditIcon, DragHandleIcon } from '../components/ui/Icons';
 import { useSettings } from '../context/SettingsContext';
 
 import usePointerReorder from '../hooks/usePointerReorder';
+import useWriteCompletion from '../hooks/useWriteCompletion';
 
 export default function WorkoutDay() {
   const { dayId } = useParams();
@@ -23,33 +24,37 @@ export default function WorkoutDay() {
   const [newExName, setNewExName] = useState('');
 
   const [renamingExId, setRenamingExId] = useState(null);
+  const [renameVersion, setRenameVersion] = useState(null);
   const [renameValue, setRenameValue] = useState('');
 
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
+  useWriteCompletion('add_exercise', p => { if (p.dayId === dayId && p.name === newExName.trim()) { setNewExName(''); setIsAddOpen(false); } });
+  useWriteCompletion('rename_exercise', p => { if (p.id === renamingExId && p.name === renameValue.trim()) setRenamingExId(null); });
+  useWriteCompletion('delete_exercise', p => { if (p.id === confirmDeleteId) { setConfirmDeleteId(null); setRenamingExId(null); } });
+
   if (!day) {
-    navigate('/', { replace: true });
-    return null;
+    return <Navigate to="/" replace />;
   }
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (newExName.trim()) {
-      addExercise(dayId, newExName.trim());
+      if (!await addExercise(dayId, newExName.trim())) return;
       setNewExName('');
       setIsAddOpen(false);
     }
   };
 
-  const handleRename = () => {
+  const handleRename = async () => {
     if (renameValue.trim() && renamingExId) {
-      renameExercise(dayId, renamingExId, renameValue.trim());
+      if (!await renameExercise(dayId, renamingExId, renameValue.trim(), renameVersion)) return;
       setRenamingExId(null);
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirmDeleteId) {
-      deleteExercise(dayId, confirmDeleteId);
+      if (!await deleteExercise(dayId, confirmDeleteId)) return;
       setConfirmDeleteId(null);
       setRenamingExId(null);
     }
@@ -95,6 +100,7 @@ export default function WorkoutDay() {
                     <button className="card-edit-btn" onClick={(e) => {
                       e.stopPropagation();
                       setRenameValue(ex.name);
+                      setRenameVersion(data?._version);
                       setRenamingExId(ex.id);
                     }} title="Edit Exercise">
                       <EditIcon />

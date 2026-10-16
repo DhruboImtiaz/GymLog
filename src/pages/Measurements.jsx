@@ -7,6 +7,7 @@ import { SettingsIcon } from '../components/ui/Icons';
 import { useSettings } from '../context/SettingsContext';
 import { BottomNav } from '../components/navigation/BottomNav';
 import usePointerReorder from '../hooks/usePointerReorder';
+import useWriteCompletion from '../hooks/useWriteCompletion';
 
 export default function Measurements() {
   const navigate = useNavigate();
@@ -23,12 +24,17 @@ export default function Measurements() {
   const [addName, setAddName] = useState('');
 
   const [renameId, setRenameId] = useState(null);
+  const [renameVersion, setRenameVersion] = useState(null);
   const [renameName, setRenameName] = useState('');
 
-  const handleCreate = () => {
+  useWriteCompletion('create_measurement', p => { if (p.name === addName.trim()) { setAddName(''); setIsAddOpen(false); } });
+  useWriteCompletion('rename_measurement', p => { if (p.id === renameId && p.name === renameName.trim()) { setRenameId(null); setRenameName(''); } });
+  useWriteCompletion('delete_measurement', p => { if (p.id === renameId) setRenameId(null); });
+
+  const handleCreate = async () => {
     const name = addName.trim();
     if (!name) return;
-    createMeasurement(name);
+    if (!await createMeasurement(name)) return;
     setAddName('');
     setIsAddOpen(false);
     // Mimicking vanilla toast
@@ -39,12 +45,13 @@ export default function Measurements() {
     e.stopPropagation();
     setRenameId(m.id);
     setRenameName(m.name);
+    setRenameVersion(data?._version);
   };
 
-  const handleRename = () => {
+  const handleRename = async () => {
     const name = renameName.trim();
     if (!name || !renameId) return;
-    renameMeasurement(renameId, name);
+    if (!await renameMeasurement(renameId, name, renameVersion)) return;
     setRenameId(null);
     setRenameName('');
     alert('Renamed');
@@ -54,7 +61,7 @@ export default function Measurements() {
     if (!renameId) return;
     const ok = window.confirm('Delete this measurement and all its entries?');
     if (!ok) return;
-    deleteMeasurement(renameId);
+    if (!await deleteMeasurement(renameId)) return;
     setRenameId(null);
     alert('Deleted');
   };

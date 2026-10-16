@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useGymLogData } from '../context/DataContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
@@ -14,15 +14,8 @@ export default function MeasurementProgress() {
   const { theme, toggleTheme } = useTheme();
   const { setIsSettingsOpen } = useSettings();
 
-  if (!data) return null;
-  const measurement = data.measurements?.find(m => m.id === measId);
-
-  if (!measurement) {
-    navigate('/measurements', { replace: true });
-    return null;
-  }
-
-  const entries = measurement.entries || [];
+  const measurement = data?.measurements?.find(m => m.id === measId);
+  const entries = measurement?.entries || [];
 
   const years = [...new Set(entries.map(e => new Date(e.date).getFullYear()))].sort((a, b) => a - b);
   const now = new Date();
@@ -33,6 +26,9 @@ export default function MeasurementProgress() {
 
   const [progMonth, setProgMonth] = useState(now.getMonth());
   const [progYear, setProgYear] = useState(initialYear);
+
+  if (!data) return null;
+  if (!measurement) return <Navigate to="/measurements" replace />;
 
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 

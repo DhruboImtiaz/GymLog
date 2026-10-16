@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import useWriteCompletion from '../../hooks/useWriteCompletion';
 import DateSelector from './DateSelector';
 
 export default function AddSetForm({ onAdd, dateOffset, setDateOffset, disabled }) {
@@ -6,6 +7,8 @@ export default function AddSetForm({ onAdd, dateOffset, setDateOffset, disabled 
   const [weight, setWeight] = useState('');
   const submitting = React.useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useWriteCompletion('add_set', p => { if (p.reps === Number(reps) && p.weight === Number(weight)) { setReps(''); setWeight(''); } });
 
   const handleAdd = async () => {
     if (disabled || submitting.current) return;

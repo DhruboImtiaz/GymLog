@@ -46,67 +46,14 @@ export const SupabaseService = {
     return data;
   },
 
-  // --- DAYS ---
-  createDay: async (id, name, createdAt, position, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    const { error } = await supabase.from('workout_days').insert({
-      id, user_id: userId, name, created_at: createdAt, position
-    });
-    if (error) throw new RepositoryError(error.message, error.code);
-  },
-
-  renameDay: async (id, newName, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    const { error } = await supabase.from('workout_days').update({ name: newName }).eq('id', id).eq('user_id', userId);
-    if (error) throw new RepositoryError(error.message, error.code);
-  },
-
-  deleteDay: async (id, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    const { error } = await supabase.from('workout_days').delete().eq('id', id).eq('user_id', userId);
-    if (error) throw new RepositoryError(error.message, error.code);
-  },
-
-  // --- EXERCISES ---
-  addExercise: async (dayId, id, name, position, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    const { error } = await supabase.from('exercises').insert({
-      id, day_id: dayId, user_id: userId, name, position
-    });
-    if (error) throw new RepositoryError(error.message, error.code);
-  },
-
-  renameExercise: async (id, newName, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    const { error } = await supabase.from('exercises').update({ name: newName }).eq('id', id).eq('user_id', userId);
-    if (error) throw new RepositoryError(error.message, error.code);
-  },
-
-  deleteExercise: async (id, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    const { error } = await supabase.from('exercises').delete().eq('id', id).eq('user_id', userId);
-    if (error) throw new RepositoryError(error.message, error.code);
-  },
-
-  // Set numbering and session writes run under the same account transaction lock.
-  addSet: async (exerciseId, id, setNumber, reps, weight, expectedUserId) => {
+  mutateGymLogData: async (operation, expectedUserId) => {
     await getUserId(expectedUserId);
-    const { error } = await supabase.rpc('add_gymlog_set', {
-      expected_user_id: expectedUserId, exercise_id: exerciseId, set_id: id, reps, weight
+    const { data, error } = await supabase.rpc('mutate_gymlog_data', {
+      expected_user_id: expectedUserId, operation_id: operation.id,
+      expected_version: operation.expectedVersion, action: operation.action, payload: operation.payload
     });
     if (error) throw new RepositoryError(error.message, error.code);
-  },
-
-  updateSet: async (id, reps, weight, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    const { error } = await supabase.from('active_sets').update({ reps, weight }).eq('id', id).eq('user_id', userId);
-    if (error) throw new RepositoryError(error.message, error.code);
-  },
-
-  deleteSet: async (id, expectedUserId) => {
-    await getUserId(expectedUserId);
-    const { error } = await supabase.rpc('delete_gymlog_set', { expected_user_id: expectedUserId, set_id: id });
-    if (error) throw new RepositoryError(error.message, error.code);
+    return data;
   },
 
   saveSession: async (exerciseId, logDate, sets, expectedUserId, datasetGeneration) => {
@@ -121,70 +68,6 @@ export const SupabaseService = {
     });
     if (error) throw new RepositoryError(error.message, error.code);
     return data;
-  },
-
-  // --- MEASUREMENTS ---
-  createMeasurement: async (id, name, createdAt, position, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    const { error } = await supabase.from('measurements').insert({
-      id, user_id: userId, name, created_at: createdAt, position
-    });
-    if (error) throw new RepositoryError(error.message, error.code);
-  },
-
-  renameMeasurement: async (id, newName, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    const { error } = await supabase.from('measurements').update({ name: newName }).eq('id', id).eq('user_id', userId);
-    if (error) throw new RepositoryError(error.message, error.code);
-  },
-
-  deleteMeasurement: async (id, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    const { error } = await supabase.from('measurements').delete().eq('id', id).eq('user_id', userId);
-    if (error) throw new RepositoryError(error.message, error.code);
-  },
-
-  addMeasurementEntry: async (measurementId, id, value, unit, logDate, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    const { error } = await supabase.from('measurement_entries').insert({
-      id, measurement_id: measurementId, user_id: userId, value, unit, log_date: logDate
-    });
-    if (error) throw new RepositoryError(error.message, error.code);
-  },
-
-  deleteMeasurementEntry: async (id, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    const { error } = await supabase.from('measurement_entries').delete().eq('id', id).eq('user_id', userId);
-    if (error) throw new RepositoryError(error.message, error.code);
-  },
-
-  // --- REORDERING ---
-  /**
-   * Reorders items by performing sequential UPDATEs of positions.
-   * Note: This is NOT a transactional guarantee in Supabase JS REST APIs, and could partially fail.
-   */
-  reorderDays: async (days, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    for (const day of days) {
-      const { error } = await supabase.from('workout_days').update({ position: day.position }).eq('id', day.id).eq('user_id', userId);
-      if (error) throw new RepositoryError(`Partial failure reordering day ${day.id}: ${error.message}`);
-    }
-  },
-
-  reorderExercises: async (exercises, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    for (const ex of exercises) {
-      const { error } = await supabase.from('exercises').update({ position: ex.position }).eq('id', ex.id).eq('user_id', userId);
-      if (error) throw new RepositoryError(`Partial failure reordering exercise ${ex.id}: ${error.message}`);
-    }
-  },
-
-  reorderMeasurements: async (measurements, expectedUserId) => {
-    const userId = await getUserId(expectedUserId);
-    for (const meas of measurements) {
-      const { error } = await supabase.from('measurements').update({ position: meas.position }).eq('id', meas.id).eq('user_id', userId);
-      if (error) throw new RepositoryError(`Partial failure reordering measurement ${meas.id}: ${error.message}`);
-    }
   },
 
   replaceGymLogData: async (payload, expectedUserId, expectedVersion, operationId) => {
